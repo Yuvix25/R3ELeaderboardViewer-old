@@ -179,23 +179,25 @@ public class MainActivity extends AppCompatActivity {
                 table.removeAllViews();
                 R3ELeaderboardEntry[] entries = leaderboard.getAllEntries();
 
+                final int carImgWidth = 90;
 
                 TableRow.LayoutParams positionParams = new TableRow.LayoutParams();
                 positionParams.weight = 0;
-                TableRow.LayoutParams nameParams = new TableRow.LayoutParams();
-                nameParams.weight = 1;
-                TableRow.LayoutParams laptimeParams = new TableRow.LayoutParams();
-                laptimeParams.weight = 3;
-                TableRow.LayoutParams carImgParams = new TableRow.LayoutParams();
-                carImgParams.weight = 2;
 
-                TableRow.LayoutParams imageParams = new TableRow.LayoutParams();
-                carImgParams.width = (int) Utils.dpToPx(100f, MainActivity.this);
+                TableRow.LayoutParams nameParams = new TableRow.LayoutParams();
+                nameParams.weight = 2;
+
+                TableRow.LayoutParams laptimeParams = new TableRow.LayoutParams();
+                laptimeParams.weight = 1;
+
+                TableRow.LayoutParams carImgParams = new TableRow.LayoutParams();
+                carImgParams.weight = 0;
+                carImgParams.width = (int) Utils.dpToPx(carImgWidth, MainActivity.this);
 
                 TableRow.LayoutParams[] allParams = new TableRow.LayoutParams[]{positionParams, nameParams, laptimeParams, carImgParams};
                 for (TableRow.LayoutParams params : allParams) {
-                    params.rightMargin = (int) Utils.dpToPx(7f, MainActivity.this);
-                    params.height = (int) Utils.dpToPx(50f, MainActivity.this);
+                    params.rightMargin = (int) Utils.dpToPx(10f, MainActivity.this);
+                    params.height = (int) Utils.dpToPx(((float)carImgWidth)/2, MainActivity.this);
                 }
 
 
