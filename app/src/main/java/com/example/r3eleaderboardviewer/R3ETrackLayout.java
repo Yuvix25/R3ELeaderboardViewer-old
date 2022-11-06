@@ -6,11 +6,12 @@ import java.util.Locale;
 
 public class R3ETrackLayout {
     public final String name;
-    public String trackName;
+    public final String trackName;
     public final URL icon;
 
-    public R3ETrackLayout(String name, URL icon) {
+    public R3ETrackLayout(String name, String trackName, URL icon) {
         this.name = name;
+        this.trackName = trackName;
         this.icon = icon;
     }
 

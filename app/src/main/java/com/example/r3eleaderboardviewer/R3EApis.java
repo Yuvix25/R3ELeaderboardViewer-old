@@ -74,7 +74,6 @@ public class R3EApis {
     }
 
     public static JSONObject HTTPJsonRequest(String requestURL, Map<String, String> headers) {
-
         HttpURLConnection connection = null;
         try {
             URL object = new URL(requestURL);
@@ -113,6 +112,6 @@ public class R3EApis {
     }
 
     public static JSONObject HTTPJsonRequest(String requestURL) {
-        return HTTPJsonRequest(requestURL, new HashMap<String, String>());
+        return HTTPJsonRequest(requestURL, new HashMap<>());
     }
 }

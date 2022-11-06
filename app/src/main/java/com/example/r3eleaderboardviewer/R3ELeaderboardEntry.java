@@ -1,6 +1,7 @@
 package com.example.r3eleaderboardviewer;
 
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TableRow;
@@ -66,7 +67,7 @@ public class R3ELeaderboardEntry {
         car = new R3ECar(carJson.getString("name"), carJson.getString("class-name"), new URL(carJson.getString("icon")), new URL(carJson.getString("path")));
     }
 
-    public TableRow getTableRow(MainActivity activity, int position, Double bestLap) {
+    public TableRow getTableRow(MainActivity activity, int position, Double bestLap, TableRow.LayoutParams[] params) {
         TableRow row = new TableRow(activity);
 
         List<View> views = new ArrayList<>();
@@ -87,19 +88,11 @@ public class R3ELeaderboardEntry {
         Glide.with(activity).asBitmap().load(car.icon.toString()).placeholder(android.R.drawable.progress_indeterminate_horizontal).error(android.R.drawable.stat_notify_error).into(carView);
         views.add(carView);
 
-        TableRow.LayoutParams textParams = new TableRow.LayoutParams();
-        textParams.rightMargin = (int) Utils.dpToPx(0f, activity);
-
-        TableRow.LayoutParams imageParams = new TableRow.LayoutParams();
-        imageParams.rightMargin = (int) Utils.dpToPx(0f, activity);
-        imageParams.width = (int) Utils.dpToPx(50f, activity);
-        imageParams.height = (int) Utils.dpToPx(50f, activity);
-
+        int i = 0;
         for (View view : views) {
+            view.setLayoutParams(params[i++]);
             if (view instanceof TextView) {
-                view.setLayoutParams(textParams);
-            } else if (view instanceof ImageView) {
-                view.setLayoutParams(imageParams);
+                ((TextView) view).setGravity(Gravity.CENTER_VERTICAL);
             }
             row.addView(view);
         }
