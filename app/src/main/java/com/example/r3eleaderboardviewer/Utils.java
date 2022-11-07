@@ -1,15 +1,52 @@
 package com.example.r3eleaderboardviewer;
 
+import static androidx.core.content.ContextCompat.getColor;
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
-import android.content.res.Resources;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.MediaStore;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.widget.ImageView;
 
-import com.bumptech.glide.Glide;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
+import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
+import com.bumptech.glide.load.resource.bitmap.BitmapTransformation;
+import com.bumptech.glide.request.Request;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+
+import java.io.ByteArrayOutputStream;
+import java.security.MessageDigest;
 import java.util.Locale;
+import java.util.UUID;
 
 public class Utils {
+    public static String getItemUrl(int id) {
+        return "https://game.raceroom.com/store/image_redirect?size=small&id=" + id;
+    }
+    public static String getItemUrl(String id) {
+        return getItemUrl(Integer.parseInt(id));
+    }
+
     public static String r3ePath(String path) {
         path = path.replaceAll(" ", "-").toLowerCase();
         // replace all umlauts
@@ -58,9 +95,159 @@ public class Utils {
         return dp * ((float) context.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT);
     }
 
-    public static ImageView loadImageFromUrl(String url, Context context) {
+    public static ImageView loadImageFromUrl(String url, Context context, int padToSquare, Utils.ParameterizedRunnable callback, boolean getUri) {
         ImageView img = new ImageView(context);
-        Glide.with(context).asBitmap().load(url).placeholder(android.R.drawable.progress_indeterminate_horizontal).error(android.R.drawable.stat_notify_error).into(img);
+        RequestBuilder<Bitmap> requestBuilder = Glide.with(context)
+                .asBitmap()
+                .load(url);
+//                .placeholder(android.R.drawable.progress_indeterminate_horizontal)
+//                .error(android.R.drawable.stat_notify_error);
+
+        if (padToSquare != 0) {
+            requestBuilder = requestBuilder.apply(RequestOptions.bitmapTransform(new BitmapTransformation() { // pad image to square
+                @Override
+                protected Bitmap transform(@NonNull BitmapPool pool, @NonNull Bitmap toTransform, int outWidth, int outHeight) {
+                    int size = toTransform.getWidth() + padToSquare * 2;
+                    Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+                    output.eraseColor(ContextCompat.getColor(context, R.color.colorChipViewBackground));
+                    Canvas can = new Canvas(output);
+                    can.drawBitmap(toTransform, padToSquare, ((float)(size - toTransform.getHeight())) / 2, null);
+                    return output;
+                }
+
+                @Override
+                public void updateDiskCacheKey(@NonNull MessageDigest messageDigest) {}
+            }));
+        }
+
+        if (callback == null) {
+            requestBuilder.into(img);
+        } else {
+            requestBuilder.into(new CustomTarget<Bitmap>() {
+                @Override
+                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                    img.setImageBitmap(resource);
+
+                    if (getUri) {
+                        requestUriPermission((Activity) context);
+                        int i = 0;
+                        while (!hasUriPermission(context)) {
+                            if (i > 300) { // 30 seconds
+                                AlertDialog alertDialog = new AlertDialog.Builder(context).create();
+                                alertDialog.setTitle("Permission Denied");
+                                alertDialog.setMessage("It took you too long to grant the permission, or you denied it. Please restart the app and grant the permission.");
+                                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                        new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                dialog.dismiss();
+                                                System.exit(1);
+                                            }
+                                        });
+                                alertDialog.show();
+                                break;
+                            }
+
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            i++;
+                        }
+                        String uri = getImageUri(context, resource);
+                        img.setTag(uri);
+                    }
+
+                    callback.run(img, true);
+                }
+
+                @Override
+                public void onLoadCleared(@Nullable Drawable placeholder) {}
+
+                @Override
+                public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                    Log.d("Glide", "onLoadFailed: " + url);
+                    callback.run(img, false);
+                }
+            });
+        }
+
+
         return img;
+    }
+
+    public static ImageView loadImageFromUrl(String url, Context context) {
+        return loadImageFromUrl(url, context, 0, null, false);
+    }
+
+    public static ImageView loadImageFromUrl(String url, Context context, Utils.ParameterizedRunnable uriCallback) {
+        return loadImageFromUrl(url, context, 0, uriCallback, false);
+    }
+
+    public static ImageView loadImageFromUrl(String url, Context context, int padToSquare) {
+        return loadImageFromUrl(url, context, padToSquare, null, false);
+    }
+
+    public static ImageView loadImageFromUrl(String url, Context context, int padToSquare, Utils.ParameterizedRunnable uriCallback) {
+        return loadImageFromUrl(url, context, padToSquare, uriCallback, false);
+    }
+
+
+
+    private static void requestUriPermission(Activity activity) {
+        ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+    }
+
+    private static boolean hasUriPermission(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        } else {
+            return true;
+        }
+    }
+
+
+    public static String getImageUri(Context inContext, Bitmap inImage) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, UUID.randomUUID().toString() + ".png", "drawing");
+        return path;
+    }
+
+    public static abstract class ParameterizedRunnable implements Runnable {
+        private Object[] params;
+
+        /**
+         * @param params: parameters you want to pass the the runnable.
+         */
+        public ParameterizedRunnable(Object... params) {
+            this.params = params;
+        }
+
+        /**
+         * Code you want to run
+         *
+         * @param params:parameters you want to pass the the runnable.
+         */
+        protected abstract void run(Object... params);
+
+        @Override
+        public final void run() {
+            run(params);
+        }
+
+        /**
+         * setting params
+         */
+        public void setParams(Object... params) {
+            this.params = params;
+        }
+
+        /**
+         * getting params
+         */
+        public Object[] getParams() {
+            return params;
+        }
     }
 }

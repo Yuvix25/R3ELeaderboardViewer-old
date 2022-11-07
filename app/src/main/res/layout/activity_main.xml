@@ -11,10 +11,11 @@
         android:id="@+id/carSelector"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/carSelect"
+        android:padding="10dp"
+        app:layout_constraintTop_toBottomOf="@id/trackSelect"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        android:padding="10dp"
+        app:maxRows="30"
         app:hint="Select cars"/>
 
     <com.androidbuts.multispinnerfilter.SingleSpinnerSearch
@@ -31,26 +32,9 @@
         app:hintText="Select Track"
         app:layout_constraintHorizontal_weight=".40"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="@id/carSelect"
+        app:layout_constraintRight_toLeftOf="@id/carSelector"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.androidbuts.multispinnerfilter.MultiSpinnerSearch
-        android:id="@+id/carSelect"
-        android:layout_width="0dp"
-
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:layout_marginStart="9dp"
-        android:layout_marginLeft="9dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="9dp"
-        android:layout_marginRight="9dp"
-        android:textColor="#000000"
-        app:hintText="Select Cars"
-        app:layout_constraintHorizontal_weight=".40"
-        app:layout_constraintLeft_toRightOf="@+id/trackSelect"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
         android:layout_width="match_parent"

@@ -3,11 +3,8 @@ package com.example.r3eleaderboardviewer;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TableRow;
 import android.widget.TextView;
-
-import com.bumptech.glide.Glide;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,11 +23,11 @@ public class R3ELeaderboardEntry {
     public final Double laptimeSeconds;
     public final int position; // starts from 1
     public final R3EDriver driver;
-    public final R3ETrackEntry track;
-    public final R3ECar car;
+    public final R3ETrackLayout trackLayout;
+    public final R3ELivery livery;
 
 
-    public R3ELeaderboardEntry(JSONObject entry) throws JSONException, MalformedURLException {
+    public R3ELeaderboardEntry(JSONObject entry, String carClassId, String trackLayoutId) throws JSONException, MalformedURLException {
         String[] fullDate = entry.getString("date_time").split("T");
         String[] date = fullDate[0].split("-");
         String[] time = fullDate[1].split(":");
@@ -61,10 +58,34 @@ public class R3ELeaderboardEntry {
         );
 
         JSONObject trackJson = entry.getJSONObject("track");
-        track = new R3ETrackEntry(trackJson.getString("name"), new URL(trackJson.getString("image")));
+        String trackName = trackJson.getString("name").split(" - ")[0];
+        String trackLayoutName = trackJson.getString("name").split(" - ")[1];
+
+        if (R3EData.trackLayouts.containsKey(trackLayoutId)) {
+            trackLayout = R3EData.trackLayouts.get(trackLayoutId);
+        } else {
+            trackLayout = new R3ETrackLayout(trackLayoutName, new URL(trackJson.getString("image")));
+        }
+
 
         JSONObject carJson = entry.getJSONObject("car_class").getJSONObject("car");
-        car = new R3ECar(carJson.getString("name"), carJson.getString("class-name"), new URL(carJson.getString("icon")), new URL(carJson.getString("path")));
+        Log.d("R3ELeaderboardEntry", "carJson: " + carJson.toString());
+//        String carName = carJson.getString("name").split(" - ")[0];
+//        String liveryName = carJson.getString("name").split(" - ")[1];
+
+        R3ELivery tmpLivery = null; // for Java to know that livery is always initialized
+//        if (carClassId.startsWith("class-")) {
+//            String id = carClassId.substring(6);
+//            if (R3EData.classes.containsKey(id)) {
+//                tmpLivery = R3EData.classes.get(id).getCar(carName).getLivery(liveryName);
+//            }
+//        } else if (R3EData.cars.containsKey(carClassId)) {
+//            tmpLivery = R3EData.cars.get(carClassId).getLivery(liveryName);
+//        }
+        if (tmpLivery == null) {
+            tmpLivery = new R3ELivery(carJson.getString("name"), new URL(carJson.getString("icon")));
+        }
+        livery = tmpLivery;
     }
 
     public TableRow getTableRow(MainActivity activity, int position, Double bestLap, TableRow.LayoutParams[] params) {
@@ -84,7 +105,7 @@ public class R3ELeaderboardEntry {
         lapTimeView.setText(getLapTimeWithRelative(bestLap));
         views.add(lapTimeView);
 
-        views.add(Utils.loadImageFromUrl(car.icon.toString(), activity));
+        views.add(Utils.loadImageFromUrl(livery.icon.toString(), activity));
 
         int i = 0;
         for (View view : views) {

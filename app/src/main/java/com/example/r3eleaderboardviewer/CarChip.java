@@ -11,17 +11,14 @@ public class CarChip implements ChipInterface {
     private final String label;
     private final String info;
     private final Drawable avatarDrawable;
-    private final Uri avatarUri;
     private final Object data;
 
-    public CarChip(String label, String info, String iconUrl, Object data, Context context) {
+    public CarChip(String label, String info, Drawable icon, Object data) {
         super();
-
         this.label = label;
         this.info = info;
-        this.avatarUri = Uri.parse(iconUrl);
         this.data = data;
-        this.avatarDrawable = Utils.loadImageFromUrl(iconUrl, context).getDrawable();
+        this.avatarDrawable = icon;
     }
 
     @Override
@@ -31,7 +28,7 @@ public class CarChip implements ChipInterface {
 
     @Override
     public Uri getAvatarUri() {
-        return avatarUri;
+        return null;
     }
 
     @Override

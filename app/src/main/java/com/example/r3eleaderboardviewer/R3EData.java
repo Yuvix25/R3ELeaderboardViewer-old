@@ -1,20 +1,21 @@
 package com.example.r3eleaderboardviewer;
 
-import android.util.Log;
-
 import com.androidbuts.multispinnerfilter.KeyPairBoolData;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class R3EData {
-    public static Map<Integer, KeyPairBoolData> cars;
-    public static Map<Integer, KeyPairBoolData> classes;
-    public static Map<Integer, KeyPairBoolData> tracks;
-    public static Map<Integer, KeyPairBoolData> trackLayouts;
+    public static final Map<String, R3ELivery> liveries = new HashMap<>();
+    public static final Map<String, R3ECar> cars = new HashMap<>();
+    public static final Map<String, R3EClass> classes = new HashMap<>();
+    public static final Map<String, R3ETrack> tracks = new HashMap<>();
+    public static final Map<String, R3ETrackLayout> trackLayouts = new HashMap<>();
 
     public static boolean load() {
         JSONObject r3eData = R3EApis.getR3EDataFile();
@@ -23,52 +24,89 @@ public class R3EData {
         }
 
         try {
-            Iterator<String> carKeys = r3eData.getJSONObject("cars").keys();
-            cars = new HashMap<>();
+            Iterator<String> classKeys = r3eData.getJSONObject("classes").keys();
+            while (classKeys.hasNext()) {
+                String classId = classKeys.next();
+                JSONObject carClass = r3eData.getJSONObject("classes").getJSONObject(classId);
 
-            while (carKeys.hasNext()) {
-                int carId = Integer.parseInt(carKeys.next());
-                JSONObject car = r3eData.getJSONObject("cars").getJSONObject(Integer.toString(carId));
+                R3EClass r3eClass = new R3EClass(carClass.getString("Name"), classId);
 
-                String carName = car.getString("Name");
-                int classId = car.getInt("Class");
-                String liveryName = car.getJSONArray("liveries").getJSONObject(0).getString("Name");
-                String liveryTeamName = car.getJSONArray("liveries").getJSONObject(0).getString("TeamName");
-                int liveryId = car.getJSONArray("liveries").getJSONObject(0).getInt("Id");
-                int manufacturerId = car.getInt("CarManufacturer");
+                classes.put(classId, r3eClass);
 
-                String carClass = r3eData.getJSONObject("classes").getJSONObject(Integer.toString(classId)).getString("Name");
-                String manufacturer = r3eData.getJSONObject("manufacturers").getJSONObject(Integer.toString(manufacturerId)).getString("Name");
+                JSONArray carIds = carClass.getJSONArray("Cars");
+                for (int i = 0; i < carIds.length(); i++) {
+                    String carId = Integer.toString(carIds.getJSONObject(i).getInt("Id"));
+                    JSONObject car = r3eData.getJSONObject("cars").getJSONObject(carId);
 
-                KeyPairBoolData carData = new KeyPairBoolData(car.getString("Name"), false);
-                carData.setId(carId);
-                carData.setObject(new R3ECar(carName, carClass, liveryName, liveryTeamName, liveryId, manufacturer));
+                    JSONArray liveries = car.getJSONArray("liveries");
 
-                cars.put(carId, carData);
+                    R3ECar r3eCar = new R3ECar(car.getString("Name"), carId, r3eClass, liveries.getJSONObject(0).getString("Name"));
+
+                    r3eClass.cars.put(r3eCar.name, r3eCar);
+                    cars.put(carId, r3eCar);
+
+                    for (int j = 0; j < liveries.length(); j++) {
+                        JSONObject livery = liveries.getJSONObject(j);
+                        String liveryId = Integer.toString(livery.getInt("Id"));
+
+                        R3ELivery r3eLivery = new R3ELivery(livery.getString("Name"), liveryId, r3eCar);
+
+                        r3eCar.liveries.put(r3eLivery.name, r3eLivery);
+                        R3EData.liveries.put(liveryId, r3eLivery);
+                    }
+                }
             }
 
-            Iterator<String> trackLayoutKeys = r3eData.getJSONObject("layouts").keys();
-            trackLayouts = new HashMap<>();
 
-            while (trackLayoutKeys.hasNext()) {
-                int trackLayoutId = Integer.parseInt(trackLayoutKeys.next());
-                JSONObject trackLayout = r3eData.getJSONObject("layouts").getJSONObject(Integer.toString(trackLayoutId));
 
-                int trackId = trackLayout.getInt("Track");
-                String trackName = r3eData.getJSONObject("tracks").getJSONObject(Integer.toString(trackId)).getString("Name");
-                String trackLayoutName = trackLayout.getString("Name");
+            Iterator<String> trackKeys = r3eData.getJSONObject("tracks").keys();
+            while (trackKeys.hasNext()) {
+                String trackId = trackKeys.next();
+                JSONObject track = r3eData.getJSONObject("tracks").getJSONObject(trackId);
 
-                KeyPairBoolData trackLayoutData = new KeyPairBoolData(trackName + " - " + trackLayoutName, false);
-                trackLayoutData.setId(trackLayoutId);
-                trackLayoutData.setObject(new R3ETrackLayout(trackLayoutName, trackName, trackId));
+                R3ETrack r3eTrack = new R3ETrack(track.getString("Name"), trackId);
 
-                trackLayouts.put(trackLayoutId, trackLayoutData);
+                tracks.put(trackId, r3eTrack);
+
+                JSONArray layouts = r3eData.getJSONObject("tracks").getJSONObject(trackId).getJSONArray("layouts");
+                for (int i = 0; i < layouts.length(); i++) {
+                    JSONObject layout = layouts.getJSONObject(i);
+                    String layoutId = Integer.toString(layout.getInt("Id"));
+
+                    R3ETrackLayout r3eTrackLayout = new R3ETrackLayout(layout.getString("Name"), layoutId, r3eTrack);
+
+                    r3eTrack.layouts.put(r3eTrackLayout.name, r3eTrackLayout);
+                    R3EData.trackLayouts.put(layoutId, r3eTrackLayout);
+                }
             }
+
+
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
 
         return true;
+    }
+
+    public static List<R3ECarOrClass> getCarsForChips() {
+        List<R3ECarOrClass> carPairs = new java.util.ArrayList<>();
+        for (R3ECar car : cars.values()) {
+            carPairs.add(new R3ECarOrClass(car));
+        }
+        return carPairs;
+    }
+
+    public static List<KeyPairBoolData> getTrackLayoutsForChips() {
+        List<KeyPairBoolData> trackLayoutPairs = new java.util.ArrayList<>();
+        for (R3ETrackLayout trackLayout : trackLayouts.values()) {
+            KeyPairBoolData h = new KeyPairBoolData();
+            h.setId(Integer.parseInt(trackLayout.id));
+            h.setName(trackLayout.track.name + " - " + trackLayout.name);
+            h.setSelected(false);
+            h.setObject(trackLayout);
+            trackLayoutPairs.add(h);
+        }
+        return trackLayoutPairs;
     }
 }

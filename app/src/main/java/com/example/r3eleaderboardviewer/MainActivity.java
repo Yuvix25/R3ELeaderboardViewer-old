@@ -1,19 +1,14 @@
 package com.example.r3eleaderboardviewer;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
-import android.view.Gravity;
+import android.widget.ImageView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 
 import com.androidbuts.multispinnerfilter.KeyPairBoolData;
-import com.androidbuts.multispinnerfilter.MultiSpinnerListener;
-import com.androidbuts.multispinnerfilter.MultiSpinnerSearch;
 import com.androidbuts.multispinnerfilter.SingleSpinnerListener;
 import com.androidbuts.multispinnerfilter.SingleSpinnerSearch;
 import com.jakewharton.threetenabp.AndroidThreeTen;
@@ -21,7 +16,6 @@ import com.pchmn.materialchips.ChipsInput;
 import com.pchmn.materialchips.model.ChipInterface;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -31,9 +25,9 @@ public class MainActivity extends AppCompatActivity {
     R3ELeaderboard leaderboard;
 
     SingleSpinnerSearch selectTrack;
-    MultiSpinnerSearch selectCar;
+    ChipsInput selectCar;
 
-    int[] carIds;
+    List<String> carIds = new ArrayList<>();
     int trackId = -1;
 
     @Override
@@ -49,20 +43,9 @@ public class MainActivity extends AppCompatActivity {
         selectTrack.setSearchHint("Find track");
 
 
-        selectCar = findViewById(R.id.carSelect);
-        selectCar.setSearchEnabled(true);
-        selectCar.setSearchHint("Find car(s)");
-        selectCar.setEmptyTitle("No cars found");
-        selectCar.setShowSelectAllButton(false);
-        selectCar.setClearText("Clear Selection");
+        selectCar = (ChipsInput) findViewById(R.id.carSelector);
+        selectCar.setFilterableList(new ArrayList<>());
 
-        // get ChipsInput view
-        ChipsInput chipsInput = (ChipsInput) findViewById(R.id.carSelector);
-
-        List<CarChip> contactList = new ArrayList<>();
-        contactList.add(new CarChip("Test", "Info", "https://prod.r3eassets.com/assets/content/carlivery/no-regrets-racing-1-257-image-thumb.png", "data", this));
-
-        chipsInput.setFilterableList(contactList);
 
         updateSelectItems(new ArrayList<>(), new ArrayList<>());
 
@@ -77,8 +60,8 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("R3E", "Failed to load data");
                     return;
                 }
-                List<KeyPairBoolData> tracks = new ArrayList<>(R3EData.trackLayouts.values());
-                List<KeyPairBoolData> cars = new ArrayList<>(R3EData.cars.values());
+                List<KeyPairBoolData> tracks = R3EData.getTrackLayoutsForChips();
+                List<R3ECarOrClass> cars = R3EData.getCarsForChips();
 
                 updateSelectItems(tracks, cars);
 
@@ -89,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         thread.start();
     }
 
-    private void updateSelectItems(List<KeyPairBoolData> tracks, List<KeyPairBoolData> cars) {
+    private void updateSelectItems(List<KeyPairBoolData> tracks, List<R3ECarOrClass> cars) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -99,42 +82,36 @@ public class MainActivity extends AppCompatActivity {
                         R3ETrackLayout t1 = (R3ETrackLayout) o1.getObject();
                         R3ETrackLayout t2 = (R3ETrackLayout) o2.getObject();
 
-                        if (t1.trackName.equals(t2.trackName)) {
+                        if (t1.track.name.equals(t2.track.name)) {
                             return t1.name.compareTo(t2.name);
                         } else {
-                            return t1.trackName.compareTo(t2.trackName);
+                            return t1.track.name.compareTo(t2.track.name);
                         }
                     }
                 });
 
-                Collections.sort(cars, new Comparator<KeyPairBoolData>() {
+                Collections.sort(cars, new Comparator<R3ECarOrClass>() {
                     @Override
-                    public int compare(KeyPairBoolData o1, KeyPairBoolData o2) {
-                        R3ECar c1 = (R3ECar) o1.getObject();
-                        R3ECar c2 = (R3ECar) o2.getObject();
-
-                        if (c1.className.equals(c2.className)) {
-                            return c1.name.compareTo(c2.name);
+                    public int compare(R3ECarOrClass c1, R3ECarOrClass c2) {
+                        if (c1.getClassName().equals(c2.getClassName())) {
+                            return c1.getName().compareTo(c2.getName());
                         } else {
-                            return c1.className.compareTo(c2.className);
+                            return c1.getClassName().compareTo(c2.getClassName());
                         }
                     }
                 });
 
                 for (int i = cars.size() - 1; i >= 0; i--) {
-                    R3ECar car = (R3ECar) cars.get(i).getObject();
+                    R3ECarOrClass car = cars.get(i);
                     if (i < cars.size() - 1) {
-                        R3ECar prevCar = (R3ECar) cars.get(i + 1).getObject();
-                        if (!car.className.equals(prevCar.className)) {
-                            KeyPairBoolData newClass = new KeyPairBoolData(prevCar.className, false);
-                            cars.add(i + 1, newClass);
+                        R3ECarOrClass prevCar = cars.get(i + 1);
+                        if (!car.getClassName().equals(prevCar.getClassName())) {
+                            cars.add(i + 1, new R3ECarOrClass(prevCar.getCarClass()));
                         }
                     }
                 }
                 if (cars.size() > 0) {
-                    R3ECar firstCar = (R3ECar) cars.get(0).getObject();
-                    KeyPairBoolData newClass = new KeyPairBoolData(firstCar.className, false);
-                    cars.add(0, newClass);
+                    cars.add(0, new R3ECarOrClass(cars.get(0).getCarClass()));
                 }
 
                 selectTrack.setItems(tracks, new SingleSpinnerListener() {
@@ -149,19 +126,67 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-                selectCar.setItems(cars, new MultiSpinnerListener() {
-                    @Override
-                    public void onItemsSelected(List<KeyPairBoolData> items) {
-                        carIds = new int[items.size()];
-                        for (int i = 0; i < items.size(); i++) {
-                            if (items.get(i).getObject() == null) { // full class, select each car in it.
-                                continue;
-                            }
-                            carIds[i] = (int) items.get(i).getId();
-                        }
-                        updateCarTrack();
+                List<CarChip> carList = new ArrayList<>();
+
+                final int[] receivedIcons = {0};
+                for (R3ECarOrClass car : cars) {
+                    String icon = car.getIcon().toString();
+                    String label;
+                    String info;
+                    int padding = 25;
+                    if (car.isClass) {
+                        label = car.getClassName();
+                        info = "";
+                        padding = 0;
+                    } else {
+                        label = car.getName();
+                        info = car.getClassName();
                     }
-                });
+
+                    Utils.loadImageFromUrl(icon, MainActivity.this, padding, new Utils.ParameterizedRunnable() {
+                        @Override
+                        protected void run(Object... params) {
+                            ImageView image = (ImageView) params[0];
+                            boolean success = (boolean) params[1];
+
+                            receivedIcons[0]++;
+                            Log.d("R3E", "Received icon " + receivedIcons[0] + "/" + cars.size() + " - " + icon + " - " + success);
+
+                            if (success) {
+                                carList.add(new CarChip(label, info, image.getDrawable(), car));
+                            }
+
+                            if (receivedIcons[0] == cars.size()) {
+                                selectCar.setFilterableList(carList);
+                                selectCar.requestLayout();
+                                selectCar.addChipsListener(new ChipsInput.ChipsListener() {
+                                    @Override
+                                    public void onChipAdded(ChipInterface chip, int newSize) {
+                                        R3ECarOrClass carObj = (R3ECarOrClass) chip.getId();
+                                        String carId;
+                                        if (carObj.isClass) {
+                                            carId = "class-" + carObj.getId();
+                                        } else {
+                                            carId = carObj.getId();
+                                        }
+                                        carIds.add(carId);
+                                        updateCarTrack();
+                                    }
+
+                                    @Override
+                                    public void onChipRemoved(ChipInterface chip, int newSize) {
+                                        updateCarTrack();
+                                    }
+
+                                    @Override
+                                    public void onTextChanged(CharSequence text) {
+                                    }
+                                });
+                                Log.d("R3E", "Done loading and processing all cars.");
+                            }
+                        }
+                    });
+                }
             }
         });
     }

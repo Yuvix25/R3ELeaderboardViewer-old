@@ -93,7 +93,7 @@ public class R3ELeaderboard {
         return false;
     }
 
-    public boolean updateCars(String[] carClassIds) {
+    public boolean updateCars(List<String> carClassIds) {
         boolean res = true;
         for (String carClassId : carClassIds) {
             if (!this.carClassIds.contains(carClassId)) {
@@ -102,22 +102,14 @@ public class R3ELeaderboard {
         }
 
         for (String carClassId : this.carClassIds) {
-            if (!Arrays.asList(carClassIds).contains(carClassId)) {
+            if (!carClassIds.contains(carClassId)) {
                 entries.remove(carClassId);
             }
         }
 
-        this.carClassIds = new ArrayList<>(Arrays.asList(carClassIds));
+        this.carClassIds = new ArrayList<>(carClassIds);
 
         return res;
-    }
-
-    public boolean updateCars(int[] carIds) {
-        String[] carClassIds = new String[carIds.length];
-        for (int i = 0; i < carIds.length; i++) {
-            carClassIds[i] = Integer.toString(carIds[i]);
-        }
-        return updateCars(carClassIds);
     }
 
     public boolean addCarClass(String carClassId) {
@@ -127,10 +119,10 @@ public class R3ELeaderboard {
 
         if (trackId != -1) {
             R3ELeaderboardEntry[] entries = R3EApis.getLeaderboard(trackId, carClassId, MAX_ENTRIES);
-            Log.d("R3E", "Got " + entries.length + " entries for " + carClassId + " on " + trackId);
             if (entries == null) {
                 return false;
             }
+            Log.d("R3E", "Got " + entries.length + " entries for " + carClassId + " on " + trackId);
 
             this.entries.put(carClassId, entries);
 

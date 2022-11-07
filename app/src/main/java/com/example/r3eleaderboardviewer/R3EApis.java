@@ -55,10 +55,12 @@ public class R3EApis {
         JSONObject res = HTTPJsonRequest(url, headers);
 
         try {
-            JSONArray jsonEntries = res.getJSONObject("context").getJSONObject("c").getJSONArray("results");
+            JSONObject content = res.getJSONObject("context").getJSONObject("c");
+            JSONObject getQuery = content.getJSONObject("get");
+            JSONArray jsonEntries = content.getJSONArray("results");
             R3ELeaderboardEntry[] entries = new R3ELeaderboardEntry[jsonEntries.length()];
             for (int i = 0; i < jsonEntries.length(); i++) {
-                entries[i] = new R3ELeaderboardEntry(jsonEntries.getJSONObject(i));
+                entries[i] = new R3ELeaderboardEntry(jsonEntries.getJSONObject(i), getQuery.getString("track"), getQuery.getString("car_class"));
             }
             return entries;
         } catch (Exception e) {
