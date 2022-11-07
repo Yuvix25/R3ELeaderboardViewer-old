@@ -3,6 +3,9 @@ package com.example.r3eleaderboardviewer;
 import android.content.Context;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
+import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
 
 import java.util.Locale;
 
@@ -53,5 +56,11 @@ public class Utils {
 
     public static float dpToPx(float dp, Context context) {
         return dp * ((float) context.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+    }
+
+    public static ImageView loadImageFromUrl(String url, Context context) {
+        ImageView img = new ImageView(context);
+        Glide.with(context).asBitmap().load(url).placeholder(android.R.drawable.progress_indeterminate_horizontal).error(android.R.drawable.stat_notify_error).into(img);
+        return img;
     }
 }

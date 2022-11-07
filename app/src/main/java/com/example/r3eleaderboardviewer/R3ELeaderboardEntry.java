@@ -84,9 +84,7 @@ public class R3ELeaderboardEntry {
         lapTimeView.setText(getLapTimeWithRelative(bestLap));
         views.add(lapTimeView);
 
-        ImageView carView = new ImageView(activity);
-        Glide.with(activity).asBitmap().load(car.icon.toString()).placeholder(android.R.drawable.progress_indeterminate_horizontal).error(android.R.drawable.stat_notify_error).into(carView);
-        views.add(carView);
+        views.add(Utils.loadImageFromUrl(car.icon.toString(), activity));
 
         int i = 0;
         for (View view : views) {

@@ -17,6 +17,8 @@ import com.androidbuts.multispinnerfilter.MultiSpinnerSearch;
 import com.androidbuts.multispinnerfilter.SingleSpinnerListener;
 import com.androidbuts.multispinnerfilter.SingleSpinnerSearch;
 import com.jakewharton.threetenabp.AndroidThreeTen;
+import com.pchmn.materialchips.ChipsInput;
+import com.pchmn.materialchips.model.ChipInterface;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +55,14 @@ public class MainActivity extends AppCompatActivity {
         selectCar.setEmptyTitle("No cars found");
         selectCar.setShowSelectAllButton(false);
         selectCar.setClearText("Clear Selection");
+
+        // get ChipsInput view
+        ChipsInput chipsInput = (ChipsInput) findViewById(R.id.carSelector);
+
+        List<CarChip> contactList = new ArrayList<>();
+        contactList.add(new CarChip("Test", "Info", "https://prod.r3eassets.com/assets/content/carlivery/no-regrets-racing-1-257-image-thumb.png", "data", this));
+
+        chipsInput.setFilterableList(contactList);
 
         updateSelectItems(new ArrayList<>(), new ArrayList<>());
 
@@ -177,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 TableLayout table = findViewById(R.id.leaderboardTable);
                 table.removeAllViews();
-                R3ELeaderboardEntry[] entries = leaderboard.getAllEntries();
+                List<R3ELeaderboardEntry> entries = leaderboard.getAllEntries();
 
                 final int carImgWidth = 90;
 
@@ -191,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 laptimeParams.weight = 1;
 
                 TableRow.LayoutParams carImgParams = new TableRow.LayoutParams();
-                carImgParams.weight = 0;
+                carImgParams.weight = 1;
                 carImgParams.width = (int) Utils.dpToPx(carImgWidth, MainActivity.this);
 
                 TableRow.LayoutParams[] allParams = new TableRow.LayoutParams[]{positionParams, nameParams, laptimeParams, carImgParams};
@@ -203,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
 
                 int i = 0;
                 for (R3ELeaderboardEntry entry : entries) {
-                    table.addView(entry.getTableRow(MainActivity.this, ++i, entries[0].laptimeSeconds, allParams));
+                    table.addView(entry.getTableRow(MainActivity.this, ++i, entries.get(0).laptimeSeconds, allParams));
                 }
             }
         });

@@ -4,10 +4,15 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class R3ELeaderboard {
     private static final int MAX_ENTRIES = 5000;
@@ -34,27 +39,43 @@ public class R3ELeaderboard {
 
     public R3ELeaderboard() {}
 
-    public R3ELeaderboardEntry[] getAllEntries() {
+    public List<R3ELeaderboardEntry> getAllEntries(boolean keepDuplicateDrivers) {
         int count = 0;
         for (R3ELeaderboardEntry[] entry : entries.values()) {
             count += entry.length;
         }
-        R3ELeaderboardEntry[] res = new R3ELeaderboardEntry[count];
-        int i = 0;
+        List<R3ELeaderboardEntry> res = new ArrayList<>();
         for (R3ELeaderboardEntry[] entry : entries.values()) {
-            for (R3ELeaderboardEntry e : entry) {
-                res[i++] = e;
-            }
+            res.addAll(Arrays.asList(entry));
         }
 
-        Arrays.sort(res, new Comparator<R3ELeaderboardEntry>() {
+        Collections.sort(res, new Comparator<R3ELeaderboardEntry>() {
             @Override
             public int compare(R3ELeaderboardEntry o1, R3ELeaderboardEntry o2) {
                 return Double.compare(o1.laptimeSeconds, o2.laptimeSeconds);
             }
         });
 
+        List<R3ELeaderboardEntry> resClone = new ArrayList<>(res);
+
+        if (!keepDuplicateDrivers)
+            res = res.stream().filter(new Predicate<R3ELeaderboardEntry>() {
+                @Override
+                public boolean test(R3ELeaderboardEntry entry1) {
+                    return resClone.stream().noneMatch(new Predicate<R3ELeaderboardEntry>() {
+                        @Override
+                        public boolean test(R3ELeaderboardEntry entry2) {
+                            return entry1.driver.name.equals(entry2.driver.name) && entry2.laptimeSeconds < entry1.laptimeSeconds;
+                        }
+                    });
+                }
+            }).collect(Collectors.toList());
+
         return res;
+    }
+
+    public List<R3ELeaderboardEntry> getAllEntries() {
+        return getAllEntries(false);
     }
 
     public boolean updateTrack(int trackId) {
