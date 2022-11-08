@@ -4,16 +4,17 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.view.View;
+import android.widget.ImageView;
 
 import com.pchmn.materialchips.model.ChipInterface;
 
 public class CarChip implements ChipInterface {
     private final String label;
     private final String info;
-    private final Drawable avatarDrawable;
+    private final ImageView avatarDrawable;
     private final Object data;
 
-    public CarChip(String label, String info, Drawable icon, Object data) {
+    public CarChip(String label, String info, ImageView icon, Object data) {
         super();
         this.label = label;
         this.info = info;
@@ -33,7 +34,7 @@ public class CarChip implements ChipInterface {
 
     @Override
     public Drawable getAvatarDrawable() {
-        return avatarDrawable;
+        return avatarDrawable.getDrawable();
     }
 
     @Override

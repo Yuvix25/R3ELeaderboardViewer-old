@@ -23,4 +23,8 @@ public class R3ETrackLayout {
         this.icon = icon;
         this.track = null;
     }
+
+    public String getDisplayName() {
+        return track.name + " - " + name;
+    }
 }

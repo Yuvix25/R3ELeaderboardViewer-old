@@ -97,16 +97,7 @@ public class R3EData {
         return carPairs;
     }
 
-    public static List<KeyPairBoolData> getTrackLayoutsForChips() {
-        List<KeyPairBoolData> trackLayoutPairs = new java.util.ArrayList<>();
-        for (R3ETrackLayout trackLayout : trackLayouts.values()) {
-            KeyPairBoolData h = new KeyPairBoolData();
-            h.setId(Integer.parseInt(trackLayout.id));
-            h.setName(trackLayout.track.name + " - " + trackLayout.name);
-            h.setSelected(false);
-            h.setObject(trackLayout);
-            trackLayoutPairs.add(h);
-        }
-        return trackLayoutPairs;
+    public static List<R3ETrackLayout> getTrackLayoutsForChips() {
+        return new java.util.ArrayList<>(trackLayouts.values());
     }
 }

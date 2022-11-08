@@ -36,10 +36,22 @@ import com.bumptech.glide.request.transition.Transition;
 
 import java.io.ByteArrayOutputStream;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 public class Utils {
+
+    private static Context context;
+
+    public static void setContext(Context context) {
+        Utils.context = context;
+    }
+    public static Context getContext() {
+        return context;
+    }
+
     public static String getItemUrl(int id) {
         return "https://game.raceroom.com/store/image_redirect?size=small&id=" + id;
     }
@@ -95,13 +107,16 @@ public class Utils {
         return dp * ((float) context.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT);
     }
 
-    public static ImageView loadImageFromUrl(String url, Context context, int padToSquare, Utils.ParameterizedRunnable callback, boolean getUri) {
+    public static ImageView loadImageFromUrl(String url, Context context, int padToSquare, Utils.ParameterizedRunnable callback, boolean getUri, boolean retry) {
         ImageView img = new ImageView(context);
         RequestBuilder<Bitmap> requestBuilder = Glide.with(context)
                 .asBitmap()
+                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
                 .load(url);
-//                .placeholder(android.R.drawable.progress_indeterminate_horizontal)
-//                .error(android.R.drawable.stat_notify_error);
+
+        if (getUri) {
+            requestBuilder = requestBuilder.placeholder(android.R.drawable.progress_indeterminate_horizontal);
+        }
 
         if (padToSquare != 0) {
             requestBuilder = requestBuilder.apply(RequestOptions.bitmapTransform(new BitmapTransformation() { // pad image to square
@@ -167,7 +182,11 @@ public class Utils {
                 @Override
                 public void onLoadFailed(@Nullable Drawable errorDrawable) {
                     Log.d("Glide", "onLoadFailed: " + url);
-                    callback.run(img, false);
+                    if (retry) {
+                        loadImageFromUrl(url, context, padToSquare, callback, getUri, false);
+                    } else {
+                        callback.run(img, false);
+                    }
                 }
             });
         }
@@ -177,19 +196,19 @@ public class Utils {
     }
 
     public static ImageView loadImageFromUrl(String url, Context context) {
-        return loadImageFromUrl(url, context, 0, null, false);
+        return loadImageFromUrl(url, context, 0, null, false, true);
     }
 
     public static ImageView loadImageFromUrl(String url, Context context, Utils.ParameterizedRunnable uriCallback) {
-        return loadImageFromUrl(url, context, 0, uriCallback, false);
+        return loadImageFromUrl(url, context, 0, uriCallback, false, true);
     }
 
     public static ImageView loadImageFromUrl(String url, Context context, int padToSquare) {
-        return loadImageFromUrl(url, context, padToSquare, null, false);
+        return loadImageFromUrl(url, context, padToSquare, null, false, true);
     }
 
     public static ImageView loadImageFromUrl(String url, Context context, int padToSquare, Utils.ParameterizedRunnable uriCallback) {
-        return loadImageFromUrl(url, context, padToSquare, uriCallback, false);
+        return loadImageFromUrl(url, context, padToSquare, uriCallback, false, true);
     }
 
 

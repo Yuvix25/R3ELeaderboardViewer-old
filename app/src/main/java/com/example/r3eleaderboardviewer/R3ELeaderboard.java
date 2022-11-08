@@ -7,12 +7,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class R3ELeaderboard {
     private static final int MAX_ENTRIES = 5000;
@@ -76,6 +74,12 @@ public class R3ELeaderboard {
 
     public List<R3ELeaderboardEntry> getAllEntries() {
         return getAllEntries(false);
+    }
+
+    public void clear() {
+        entries.clear();
+        this.trackId = -1;
+        this.carClassIds.clear();
     }
 
     public boolean updateTrack(int trackId) {

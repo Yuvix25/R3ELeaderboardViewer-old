@@ -14,12 +14,29 @@ public class R3ELivery {
         this.id = id;
         this.icon = new URL(Utils.getItemUrl(id));
         this.car = car;
+
+        cacheImage();
     }
 
-    public R3ELivery(String name, URL icon) {
+    public R3ELivery(String name, URL icon) throws MalformedURLException {
         this.name = name;
         this.id = null;
-        this.icon = icon;
+        this.icon = new URL(icon.toString().replace("image-thumb", "image-small"));
         this.car = null;
+
+        cacheImage();
+    }
+
+    private void cacheImage() {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Utils.loadImageFromUrl(icon.toString(), Utils.getContext());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }

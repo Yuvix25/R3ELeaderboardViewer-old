@@ -1,5 +1,6 @@
 package com.example.r3eleaderboardviewer;
 
+import android.content.Context;
 import android.util.*;
 
 import org.json.*;
@@ -8,6 +9,12 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Cache;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 
 public class R3EApis {
@@ -72,48 +79,72 @@ public class R3EApis {
 
     public static JSONObject getR3EDataFile() {
         String url = "https://raw.githubusercontent.com/sector3studios/r3e-spectator-overlay/master/r3e-data.json";
-        return HTTPJsonRequest(url);
+        return HTTPJsonRequest(url, 4, TimeUnit.DAYS);
     }
 
-    public static JSONObject HTTPJsonRequest(String requestURL, Map<String, String> headers) {
-        HttpURLConnection connection = null;
-        try {
-            URL object = new URL(requestURL);
-            connection = (HttpURLConnection) object.openConnection();
-            connection.setRequestMethod("GET");
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                connection.setRequestProperty(entry.getKey(), entry.getValue());
-            }
+    public static Call buildRequest(String requestURL, Map<String, String> headers, int cacheTime, TimeUnit cacheTimeUnit) {
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS);
 
-            StringBuilder stringBuilder = new StringBuilder();
-            Log.d("HTTP Request", "Sending request to URL : " + requestURL);
-            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                InputStreamReader streamReader = new InputStreamReader(
-                        connection.getInputStream());
-                BufferedReader bufferedReader = new BufferedReader(
-                        streamReader);
-                String response;
-                while ((response = bufferedReader.readLine()) != null) {
-                    stringBuilder.append(response);
-                    stringBuilder.append("\n");
-                }
-                bufferedReader.close();
-                return new JSONObject(stringBuilder.toString());
-            } else {
-                Log.e("Error = ", connection.getResponseMessage());
-                return null;
-            }
-        } catch (Exception exception) {
-            Log.e("Error = ", exception.toString());
+        Request.Builder builder = new okhttp3.Request.Builder().url(requestURL);
+
+
+        if (cacheTime > 0) {
+            clientBuilder = clientBuilder.cache(new Cache(new File(Utils.getContext().getCacheDir(), "http-cache"), 50 * 1024 * 1024));
+            builder = builder.cacheControl(new okhttp3.CacheControl.Builder().maxAge(cacheTime, cacheTimeUnit).build());
+        } else {
+            clientBuilder = clientBuilder.cache(null);
+        }
+
+        OkHttpClient client = clientBuilder.build();
+
+
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.addHeader(entry.getKey(), entry.getValue());
+        }
+
+        Request request = builder.build();
+        try {
+            return client.newCall(request);
+        } catch (Exception e) {
+            Log.e("Error = ", e.toString());
             return null;
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
+        }
+    }
+
+    public static String getRedirectedUrl(String url) {
+        try {
+            okhttp3.Response response = buildRequest(url, new HashMap<String, String>(), 7, TimeUnit.DAYS).execute();
+            return response.request().url().toString();
+        } catch (Exception e) {
+            Log.e("Error = ", e.toString());
+            return null;
+        }
+    }
+
+    public static JSONObject HTTPJsonRequest(String requestURL, Map<String, String> headers, int cacheTime, TimeUnit cacheTimeUnit) {
+        Log.d("HTTP Request", "Sending request to URL : " + requestURL);
+        try {
+            okhttp3.Response response = buildRequest(requestURL, headers, cacheTime, cacheTimeUnit).execute();
+            Log.d("HTTP Request", "Response code: " + response.code());
+            return new JSONObject(response.body().string());
+        } catch (Exception e) {
+            Log.e("Error = ", e.toString());
+            return null;
         }
     }
 
     public static JSONObject HTTPJsonRequest(String requestURL) {
-        return HTTPJsonRequest(requestURL, new HashMap<>());
+        return HTTPJsonRequest(requestURL, new HashMap<>(), 0, null);
+    }
+
+    public static JSONObject HTTPJsonRequest(String requestURL, int cacheTime, TimeUnit cacheTimeUnit) {
+        return HTTPJsonRequest(requestURL, new HashMap<>(), cacheTime, cacheTimeUnit);
+    }
+
+    public static JSONObject HTTPJsonRequest(String requestURL, Map<String, String> headers) {
+        return HTTPJsonRequest(requestURL, headers, 0, null);
     }
 }

@@ -1,16 +1,17 @@
 package com.example.r3eleaderboardviewer;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 
-import com.androidbuts.multispinnerfilter.KeyPairBoolData;
-import com.androidbuts.multispinnerfilter.SingleSpinnerListener;
-import com.androidbuts.multispinnerfilter.SingleSpinnerSearch;
+
 import com.jakewharton.threetenabp.AndroidThreeTen;
 import com.pchmn.materialchips.ChipsInput;
 import com.pchmn.materialchips.model.ChipInterface;
@@ -20,30 +21,49 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import gr.escsoft.michaelprimez.searchablespinner.SearchableSpinner;
+import gr.escsoft.michaelprimez.searchablespinner.interfaces.OnItemSelectedListener;
+
 
 public class MainActivity extends AppCompatActivity {
-    R3ELeaderboard leaderboard;
+    private R3ELeaderboard leaderboard;
 
-    SingleSpinnerSearch selectTrack;
-    ChipsInput selectCar;
+    private ProgressBar loadingCircle;
+    private SearchableSpinner selectTrack;
+    private ChipsInput selectCar;
+    private SwipeRefreshLayout pullToRefresh;
 
-    List<String> carIds = new ArrayList<>();
-    int trackId = -1;
+    private List<String> carIds = new ArrayList<>();
+    private int trackId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Utils.setContext(this);
+
         AndroidThreeTen.init(this);
 
+
+        pullToRefresh = findViewById(R.id.pullToRefresh);
+        pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                updateCarTrack(true, new Runnable() {
+                    @Override
+                    public void run() {
+                        pullToRefresh.setRefreshing(false);
+                    }
+                });
+            }
+        });
+
+//        loadingCircle = findViewById(R.id.loadingCircle);
         selectTrack = findViewById(R.id.trackSelect);
-        selectTrack.setColorseparation(false);
-        selectTrack.setSearchEnabled(true);
-        selectTrack.setSearchHint("Find track");
 
 
-        selectCar = (ChipsInput) findViewById(R.id.carSelector);
+        selectCar = (ChipsInput) findViewById(R.id.carSelect);
         selectCar.setFilterableList(new ArrayList<>());
 
 
@@ -60,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("R3E", "Failed to load data");
                     return;
                 }
-                List<KeyPairBoolData> tracks = R3EData.getTrackLayoutsForChips();
+                List<R3ETrackLayout> tracks = R3EData.getTrackLayoutsForChips();
                 List<R3ECarOrClass> cars = R3EData.getCarsForChips();
 
                 updateSelectItems(tracks, cars);
@@ -72,15 +92,26 @@ public class MainActivity extends AppCompatActivity {
         thread.start();
     }
 
-    private void updateSelectItems(List<KeyPairBoolData> tracks, List<R3ECarOrClass> cars) {
+
+    private void showLoadingCircle() {
+        if (trackId == -1 || carIds.size() == 0) {
+            return;
+        }
+
+        pullToRefresh.setRefreshing(true);
+    }
+
+    private void hideLoadingCircle() {
+        pullToRefresh.setRefreshing(false);
+    }
+
+    private void updateSelectItems(List<R3ETrackLayout> trackLayouts, List<R3ECarOrClass> cars) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Collections.sort(tracks, new Comparator<KeyPairBoolData>() {
+                Collections.sort(trackLayouts, new Comparator<R3ETrackLayout>() {
                     @Override
-                    public int compare(KeyPairBoolData o1, KeyPairBoolData o2) {
-                        R3ETrackLayout t1 = (R3ETrackLayout) o1.getObject();
-                        R3ETrackLayout t2 = (R3ETrackLayout) o2.getObject();
+                    public int compare(R3ETrackLayout t1, R3ETrackLayout t2) {
 
                         if (t1.track.name.equals(t2.track.name)) {
                             return t1.name.compareTo(t2.name);
@@ -114,15 +145,44 @@ public class MainActivity extends AppCompatActivity {
                     cars.add(0, new R3ECarOrClass(cars.get(0).getCarClass()));
                 }
 
-                selectTrack.setItems(tracks, new SingleSpinnerListener() {
+
+                ArrayList<String> trackNames = new ArrayList<>();
+                for (R3ETrackLayout trackLayout : trackLayouts) {
+                    trackNames.add(trackLayout.getDisplayName());
+                }
+
+                ArrayList<ImageView> icons = new ArrayList<>();
+                for (R3ETrackLayout trackLayout : trackLayouts) {
+                    ImageView icon = Utils.loadImageFromUrl(trackLayout.icon.toString(), MainActivity.this, new Utils.ParameterizedRunnable() {
+                        @Override
+                        protected void run(Object... params) {
+                            ImageView icon = (ImageView) params[0];
+                            Log.d("R3E", "Loaded icon for " + icon.getTag());
+                        }
+                    });
+                    icon.setTag(trackLayout.getDisplayName());
+                    icons.add(icon);
+                }
+                SimpleArrayListAdapter adapter = new SimpleArrayListAdapter(MainActivity.this, trackNames, icons);
+
+                selectTrack.setAdapter(adapter);
+                selectTrack.setOnItemSelectedListener(new OnItemSelectedListener() {
                     @Override
-                    public void onItemsSelected(KeyPairBoolData selectedItem) {
-                        trackId = (int) selectedItem.getId();
+                    public void onItemSelected(View view, int position, long id) {
+                        if (position == 0) {
+                            trackId = -1;
+                        } else {
+                            R3ETrackLayout layout = trackLayouts.get(position-1);
+                            Log.d("R3E", "Selected track " + layout.getDisplayName());
+                            trackId = Integer.parseInt(layout.id);
+                        }
                         updateCarTrack();
                     }
 
                     @Override
-                    public void onClear() {
+                    public void onNothingSelected() {
+                        trackId = -1;
+                        updateCarTrack();
                     }
                 });
 
@@ -136,14 +196,14 @@ public class MainActivity extends AppCompatActivity {
                     int padding = 25;
                     if (car.isClass) {
                         label = car.getClassName();
-                        info = "";
+                        info = car.getCars().size() + " cars";
                         padding = 0;
                     } else {
                         label = car.getName();
                         info = car.getClassName();
                     }
 
-                    Utils.loadImageFromUrl(icon, MainActivity.this, padding, new Utils.ParameterizedRunnable() {
+                    Utils.ParameterizedRunnable runnable = new Utils.ParameterizedRunnable() { // used to be a callback, no real need for it to be wrapped
                         @Override
                         protected void run(Object... params) {
                             ImageView image = (ImageView) params[0];
@@ -153,28 +213,35 @@ public class MainActivity extends AppCompatActivity {
                             Log.d("R3E", "Received icon " + receivedIcons[0] + "/" + cars.size() + " - " + icon + " - " + success);
 
                             if (success) {
-                                carList.add(new CarChip(label, info, image.getDrawable(), car));
+                                carList.add(new CarChip(label, info, image, car));
                             }
 
                             if (receivedIcons[0] == cars.size()) {
                                 selectCar.setFilterableList(carList);
                                 selectCar.requestLayout();
                                 selectCar.addChipsListener(new ChipsInput.ChipsListener() {
-                                    @Override
-                                    public void onChipAdded(ChipInterface chip, int newSize) {
-                                        R3ECarOrClass carObj = (R3ECarOrClass) chip.getId();
+                                    private String getId(Object data) {
+                                        R3ECarOrClass carObj = (R3ECarOrClass) data;
                                         String carId;
                                         if (carObj.isClass) {
                                             carId = "class-" + carObj.getId();
                                         } else {
                                             carId = carObj.getId();
                                         }
+                                        return carId;
+                                    }
+
+                                    @Override
+                                    public void onChipAdded(ChipInterface chip, int newSize) {
+                                        String carId = getId(chip.getId());
                                         carIds.add(carId);
                                         updateCarTrack();
                                     }
 
                                     @Override
                                     public void onChipRemoved(ChipInterface chip, int newSize) {
+                                        String carId = getId(chip.getId());
+                                        carIds.remove(carId);
                                         updateCarTrack();
                                     }
 
@@ -185,28 +252,46 @@ public class MainActivity extends AppCompatActivity {
                                 Log.d("R3E", "Done loading and processing all cars.");
                             }
                         }
+                    };
+
+                    ImageView img = Utils.loadImageFromUrl(icon, MainActivity.this, padding, new Utils.ParameterizedRunnable() {
+                        @Override
+                        protected void run(Object... params) {
+                            selectCar.requestLayout();
+                        }
                     });
+                    runnable.run(img, true);
                 }
             }
         });
     }
 
-    private void updateCarTrack() {
+    private void updateCarTrack(boolean force, Runnable callback) {
+        showLoadingCircle();
+
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
+                if (force) {
+                    leaderboard.clear();
+                }
+
                 leaderboard.updateTrack(trackId);
                 if (carIds != null) {
                     leaderboard.updateCars(carIds);
                 }
-                updateTable();
+                updateTable(callback);
             }
         });
 
         thread.start();
     }
 
-    private void updateTable() {
+    public void updateCarTrack() {
+        updateCarTrack(false, null);
+    }
+
+    private void updateTable(Runnable callback) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -214,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
                 table.removeAllViews();
                 List<R3ELeaderboardEntry> entries = leaderboard.getAllEntries();
 
-                final int carImgWidth = 90;
+                final int carImgWidth = 75;
 
                 TableRow.LayoutParams positionParams = new TableRow.LayoutParams();
                 positionParams.weight = 0;
@@ -223,22 +308,28 @@ public class MainActivity extends AppCompatActivity {
                 nameParams.weight = 2;
 
                 TableRow.LayoutParams laptimeParams = new TableRow.LayoutParams();
-                laptimeParams.weight = 1;
+                laptimeParams.weight = 0;
 
                 TableRow.LayoutParams carImgParams = new TableRow.LayoutParams();
-                carImgParams.weight = 1;
+                carImgParams.weight = 0;
                 carImgParams.width = (int) Utils.dpToPx(carImgWidth, MainActivity.this);
 
                 TableRow.LayoutParams[] allParams = new TableRow.LayoutParams[]{positionParams, nameParams, laptimeParams, carImgParams};
                 for (TableRow.LayoutParams params : allParams) {
-                    params.rightMargin = (int) Utils.dpToPx(10f, MainActivity.this);
-                    params.height = (int) Utils.dpToPx(((float)carImgWidth)/2, MainActivity.this);
+                    params.rightMargin = (int) Utils.dpToPx(15f, MainActivity.this);
+                    params.height = TableRow.LayoutParams.MATCH_PARENT;
                 }
 
 
                 int i = 0;
                 for (R3ELeaderboardEntry entry : entries) {
                     table.addView(entry.getTableRow(MainActivity.this, ++i, entries.get(0).laptimeSeconds, allParams));
+                }
+
+
+                hideLoadingCircle();
+                if (callback != null) {
+                    callback.run();
                 }
             }
         });

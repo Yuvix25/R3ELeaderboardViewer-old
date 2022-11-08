@@ -35,6 +35,8 @@ configurations.all {
 
 
 dependencies {
+    implementation 'com.github.michaelprimez:searchablespinner:1.0.9'
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'com.github.pchmn:MaterialChipsInput:1.0.8', {
         exclude module: 'ChipsLayoutManager'
     }
