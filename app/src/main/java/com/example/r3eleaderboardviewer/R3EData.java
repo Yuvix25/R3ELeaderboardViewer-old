@@ -1,19 +1,32 @@
 package com.example.r3eleaderboardviewer;
 
+import android.util.Log;
+
 import com.androidbuts.multispinnerfilter.KeyPairBoolData;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class R3EData {
     public static final Map<String, R3ELivery> liveries = new HashMap<>();
     public static final Map<String, R3ECar> cars = new HashMap<>();
     public static final Map<String, R3EClass> classes = new HashMap<>();
+    public static final Map<String, Set<String>> classGroupDefinitions = Map.of(
+            "GT3 Group", Set.of("GTR 3", "ADAC GT Masters 2013", "ADAC GT Masters 2014", "ADAC GT Masters 2015", "ADAC GT Masters 2018", "ADAC GT Masters 2020", "ADAC GT Masters 21", "ADAC Esports GT Masters", "ADAC Esports GT Masters 2021", "DTM 2021", "DTM Esports 2022"),
+            "WTCR Group", Set.of("WTCR 2018", "WTCR 2019", "WTCR 2020", "WTCR 2021", "WTCR 2022", "eSports WTCR", "Esports WTCR Prologue")
+    );
+    public static final Map<String, Integer> classGroupIcons = Map.of(
+            "GT3 Group", R.drawable.gt3_group_icon,
+            "WTCR Group", R.drawable.wtcr_group_icon_dark
+    );
+    public static final Map<String, R3EClassGroup> classGroups = new HashMap<>();
     public static final Map<String, R3ETrack> tracks = new HashMap<>();
     public static final Map<String, R3ETrackLayout> trackLayouts = new HashMap<>();
 
@@ -55,6 +68,20 @@ public class R3EData {
                         R3EData.liveries.put(liveryId, r3eLivery);
                     }
                 }
+            }
+
+            for (String classGroup : classGroupDefinitions.keySet()) {
+                R3EClass[] ids = new R3EClass[classGroupDefinitions.get(classGroup).size()];
+
+                int i = 0;
+                for (String classId : classes.keySet()) {
+                    if (classGroupDefinitions.get(classGroup).contains(classes.get(classId).name)) {
+                        ids[i++] = classes.get(classId);
+                    }
+                }
+
+                R3EClassGroup r3eClassGroup = new R3EClassGroup(classGroup, classGroupIcons.get(classGroup), ids);
+                classGroups.put(classGroup, r3eClassGroup);
             }
 
 

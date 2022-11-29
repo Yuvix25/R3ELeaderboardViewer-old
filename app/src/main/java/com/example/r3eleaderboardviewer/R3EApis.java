@@ -12,12 +12,20 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Cache;
+import okhttp3.CacheControl;
 import okhttp3.Call;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.Response;
 
 
 public class R3EApis {
+    private static final Map<String, String> xhrHeaders = new HashMap<String ,String>() {{
+        put("X-Requested-With", "XMLHttpRequest");
+    }};
+
+
     /**
      * Get all entries of a competition leaderboard
      * @param leaderboardId competition id
@@ -56,10 +64,7 @@ public class R3EApis {
     }
 
     private static R3ELeaderboardEntry[] getLeaderboard(String url) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("X-Requested-With", "XMLHttpRequest");
-
-        JSONObject res = HTTPJsonRequest(url, headers);
+        JSONObject res = HTTPJsonRequest(url, xhrHeaders);
 
         try {
             JSONObject content = res.getJSONObject("context").getJSONObject("c");
@@ -67,7 +72,7 @@ public class R3EApis {
             JSONArray jsonEntries = content.getJSONArray("results");
             R3ELeaderboardEntry[] entries = new R3ELeaderboardEntry[jsonEntries.length()];
             for (int i = 0; i < jsonEntries.length(); i++) {
-                entries[i] = new R3ELeaderboardEntry(jsonEntries.getJSONObject(i), getQuery.getString("track"), getQuery.getString("car_class"));
+                entries[i] = new R3ELeaderboardEntry(jsonEntries.getJSONObject(i));
             }
             return entries;
         } catch (Exception e) {
@@ -82,6 +87,49 @@ public class R3EApis {
         return HTTPJsonRequest(url, 4, TimeUnit.DAYS);
     }
 
+
+    public static R3ECompetition[] getActiveR3ECompetitions(int cacheDays) {
+        String url = "https://game.raceroom.com/competitions?_pjax=true";
+        JSONObject response = HTTPJsonRequest(url, xhrHeaders, cacheDays, TimeUnit.DAYS);
+        try {
+            // context -> c -> championships[]
+            JSONArray competitions = response.getJSONObject("context").getJSONObject("c")
+                    .getJSONArray("contests").getJSONObject(0).getJSONArray("competitions");
+
+            R3ECompetition[] compArray = new R3ECompetition[competitions.length()];
+            for (int i = 0; i < competitions.length(); i++) {
+                compArray[i] = new R3ECompetition(competitions.getJSONObject(i));
+            }
+            Log.d("R3E", "Loaded " + compArray.length + " competitions");
+            return compArray;
+        } catch (Exception e) {
+            Log.e("Bad API Result = ", e.toString());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static class CacheInterceptor implements Interceptor {
+        public int maxAge;
+        public TimeUnit timeUnit;
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Response response = chain.proceed(chain.request());
+
+            CacheControl cacheControl = new CacheControl.Builder()
+                    .maxAge(maxAge, timeUnit)
+                    .build();
+
+            return response.newBuilder()
+                    .removeHeader("Pragma")
+                    .removeHeader("Cache-Control")
+                    .header("Cache-Control", cacheControl.toString())
+                    .build();
+        }
+    }
+
+
     public static Call buildRequest(String requestURL, Map<String, String> headers, int cacheTime, TimeUnit cacheTimeUnit) {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                 .connectTimeout(20, TimeUnit.SECONDS)
@@ -92,6 +140,10 @@ public class R3EApis {
 
 
         if (cacheTime > 0) {
+            CacheInterceptor cacheInterceptor = new CacheInterceptor();
+            cacheInterceptor.maxAge = cacheTime;
+            cacheInterceptor.timeUnit = cacheTimeUnit;
+            clientBuilder = clientBuilder.addNetworkInterceptor(cacheInterceptor);
             clientBuilder = clientBuilder.cache(new Cache(new File(Utils.getContext().getCacheDir(), "http-cache"), 50 * 1024 * 1024));
             builder = builder.cacheControl(new okhttp3.CacheControl.Builder().maxAge(cacheTime, cacheTimeUnit).build());
         } else {

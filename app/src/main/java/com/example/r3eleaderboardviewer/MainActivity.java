@@ -1,15 +1,13 @@
 package com.example.r3eleaderboardviewer;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TableLayout;
-import android.widget.TableRow;
 
 
 import com.jakewharton.threetenabp.AndroidThreeTen;
@@ -17,55 +15,52 @@ import com.pchmn.materialchips.ChipsInput;
 import com.pchmn.materialchips.model.ChipInterface;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import gr.escsoft.michaelprimez.searchablespinner.SearchableSpinner;
 import gr.escsoft.michaelprimez.searchablespinner.interfaces.OnItemSelectedListener;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends ActivityWithNavigation {
     private R3ELeaderboard leaderboard;
 
-    private ProgressBar loadingCircle;
     private SearchableSpinner selectTrack;
     private ChipsInput selectCar;
     private SwipeRefreshLayout pullToRefresh;
 
+
     private List<String> carIds = new ArrayList<>();
     private int trackId = -1;
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        super.onCreate(savedInstanceState, R.layout.activity_main);
 
         Utils.setContext(this);
-
         AndroidThreeTen.init(this);
+
+        getSupportActionBar().setTitle("Leaderboards");
 
 
         pullToRefresh = findViewById(R.id.pullToRefresh);
         pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                updateCarTrack(true, new Runnable() {
-                    @Override
-                    public void run() {
-                        pullToRefresh.setRefreshing(false);
-                    }
-                });
+                updateCarTrack(true);
             }
         });
 
-//        loadingCircle = findViewById(R.id.loadingCircle);
         selectTrack = findViewById(R.id.trackSelect);
 
 
-        selectCar = (ChipsInput) findViewById(R.id.carSelect);
+        selectCar = findViewById(R.id.carSelect);
+        selectCar.clearFocus();
         selectCar.setFilterableList(new ArrayList<>());
-
 
         updateSelectItems(new ArrayList<>(), new ArrayList<>());
 
@@ -125,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public int compare(R3ECarOrClass c1, R3ECarOrClass c2) {
                         if (c1.getClassName().equals(c2.getClassName())) {
-                            return c1.getName().compareTo(c2.getName());
+                            return c1.getCarName().compareTo(c2.getCarName());
                         } else {
                             return c1.getClassName().compareTo(c2.getClassName());
                         }
@@ -143,6 +138,10 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (cars.size() > 0) {
                     cars.add(0, new R3ECarOrClass(cars.get(0).getCarClass()));
+                }
+
+                for (R3EClassGroup group : R3EData.classGroups.values()) {
+                    cars.add(0, new R3ECarOrClass(group));
                 }
 
 
@@ -169,10 +168,11 @@ public class MainActivity extends AppCompatActivity {
                 selectTrack.setOnItemSelectedListener(new OnItemSelectedListener() {
                     @Override
                     public void onItemSelected(View view, int position, long id) {
+                        Log.d("R3E", position + " " + id);
                         if (position == 0) {
                             trackId = -1;
                         } else {
-                            R3ETrackLayout layout = trackLayouts.get(position-1);
+                            R3ETrackLayout layout = trackLayouts.get(adapter.getOriginalIndex(position - 1));
                             Log.d("R3E", "Selected track " + layout.getDisplayName());
                             trackId = Integer.parseInt(layout.id);
                         }
@@ -190,18 +190,24 @@ public class MainActivity extends AppCompatActivity {
 
                 final int[] receivedIcons = {0};
                 for (R3ECarOrClass car : cars) {
-                    String icon = car.getIcon().toString();
+                    String icon = car.type == 2 ? null : car.getIcon();
+                    Integer drawableIconId = car.type == 2 ? Integer.parseInt(car.getIcon()) : null;
                     String label;
                     String info;
                     int padding = 25;
-                    if (car.isClass) {
+                    if (car.type == 0) {
+                        label = car.getCarName();
+                        info = car.getClassName();
+                    } else if (car.type == 1) {
                         label = car.getClassName();
                         info = car.getCars().size() + " cars";
                         padding = 0;
                     } else {
-                        label = car.getName();
-                        info = car.getClassName();
+                        label = car.getClassName();
+                        info = car.getClasses().size() + " classes";
+                        padding = 0;
                     }
+
 
                     Utils.ParameterizedRunnable runnable = new Utils.ParameterizedRunnable() { // used to be a callback, no real need for it to be wrapped
                         @Override
@@ -210,7 +216,8 @@ public class MainActivity extends AppCompatActivity {
                             boolean success = (boolean) params[1];
 
                             receivedIcons[0]++;
-                            Log.d("R3E", "Received icon " + receivedIcons[0] + "/" + cars.size() + " - " + icon + " - " + success);
+
+                            Log.d("R3E", "Received icon " + receivedIcons[0] + "/" + cars.size() + " - " + (icon == null ? drawableIconId : icon) + " - " + success);
 
                             if (success) {
                                 carList.add(new CarChip(label, info, image, car));
@@ -220,28 +227,28 @@ public class MainActivity extends AppCompatActivity {
                                 selectCar.setFilterableList(carList);
                                 selectCar.requestLayout();
                                 selectCar.addChipsListener(new ChipsInput.ChipsListener() {
-                                    private String getId(Object data) {
+                                    private String[] getId(Object data) {
                                         R3ECarOrClass carObj = (R3ECarOrClass) data;
-                                        String carId;
-                                        if (carObj.isClass) {
-                                            carId = "class-" + carObj.getId();
-                                        } else {
+                                        String[] carId;
+                                        if  (carObj.type == 0 ){
                                             carId = carObj.getId();
+                                        } else {
+                                            carId = Arrays.stream(carObj.getId()).map(id -> "class-" + id).toArray(String[]::new);
                                         }
                                         return carId;
                                     }
 
                                     @Override
                                     public void onChipAdded(ChipInterface chip, int newSize) {
-                                        String carId = getId(chip.getId());
-                                        carIds.add(carId);
+                                        String[] carId = getId(chip.getId());
+                                        carIds.addAll(Arrays.asList(carId));
                                         updateCarTrack();
                                     }
 
                                     @Override
                                     public void onChipRemoved(ChipInterface chip, int newSize) {
-                                        String carId = getId(chip.getId());
-                                        carIds.remove(carId);
+                                        String[] carId = getId(chip.getId());
+                                        carIds.removeAll(Arrays.asList(carId));
                                         updateCarTrack();
                                     }
 
@@ -254,19 +261,25 @@ public class MainActivity extends AppCompatActivity {
                         }
                     };
 
-                    ImageView img = Utils.loadImageFromUrl(icon, MainActivity.this, padding, new Utils.ParameterizedRunnable() {
-                        @Override
-                        protected void run(Object... params) {
-                            selectCar.requestLayout();
-                        }
-                    });
+                    ImageView img;
+                    if (icon != null) {
+                        img = Utils.loadImageFromUrl(icon, MainActivity.this, padding, new Utils.ParameterizedRunnable() {
+                            @Override
+                            protected void run(Object... params) {
+                                selectCar.requestLayout();
+                            }
+                        });
+                    } else {
+                        img = new ImageView(MainActivity.this);
+                        img.setImageResource(drawableIconId);
+                    }
                     runnable.run(img, true);
                 }
             }
         });
     }
 
-    private void updateCarTrack(boolean force, Runnable callback) {
+    private void updateCarTrack(boolean force) {
         showLoadingCircle();
 
         Thread thread = new Thread(new Runnable() {
@@ -280,15 +293,15 @@ public class MainActivity extends AppCompatActivity {
                 if (carIds != null) {
                     leaderboard.updateCars(carIds);
                 }
-                updateTable(callback);
+                updateTable(null);
             }
         });
 
         thread.start();
     }
 
-    public void updateCarTrack() {
-        updateCarTrack(false, null);
+    private void updateCarTrack() {
+        updateCarTrack(false);
     }
 
     private void updateTable(Runnable callback) {
@@ -296,41 +309,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 TableLayout table = findViewById(R.id.leaderboardTable);
-                table.removeAllViews();
-                List<R3ELeaderboardEntry> entries = leaderboard.getAllEntries();
 
-                final int carImgWidth = 75;
-
-                TableRow.LayoutParams positionParams = new TableRow.LayoutParams();
-                positionParams.weight = 0;
-
-                TableRow.LayoutParams nameParams = new TableRow.LayoutParams();
-                nameParams.weight = 2;
-
-                TableRow.LayoutParams laptimeParams = new TableRow.LayoutParams();
-                laptimeParams.weight = 0;
-
-                TableRow.LayoutParams carImgParams = new TableRow.LayoutParams();
-                carImgParams.weight = 0;
-                carImgParams.width = (int) Utils.dpToPx(carImgWidth, MainActivity.this);
-
-                TableRow.LayoutParams[] allParams = new TableRow.LayoutParams[]{positionParams, nameParams, laptimeParams, carImgParams};
-                for (TableRow.LayoutParams params : allParams) {
-                    params.rightMargin = (int) Utils.dpToPx(15f, MainActivity.this);
-                    params.height = TableRow.LayoutParams.MATCH_PARENT;
-                }
-
-
-                int i = 0;
-                for (R3ELeaderboardEntry entry : entries) {
-                    table.addView(entry.getTableRow(MainActivity.this, ++i, entries.get(0).laptimeSeconds, allParams));
-                }
-
-
+                leaderboard.updateTable(MainActivity.this, table, callback);
                 hideLoadingCircle();
-                if (callback != null) {
-                    callback.run();
-                }
             }
         });
     }

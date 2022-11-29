@@ -16,8 +16,4 @@ public class R3EClass {
         this.id = id;
         this.icon = new URL(Utils.getItemUrl(id));
     }
-
-    public R3ECar getCar(String carName) {
-        return cars.get(carName);
-    }
 }

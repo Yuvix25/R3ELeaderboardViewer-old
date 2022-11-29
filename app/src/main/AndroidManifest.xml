@@ -14,10 +14,10 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:grantUriPermissions="true"
-        android:theme="@style/AppTheme"
-        android:windowSoftInputMode="adjustNothing">
+        android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
+            android:windowSoftInputMode="stateHidden"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,6 +25,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".CompetitionBrowserActivity"></activity>
+        <activity android:name=".CompetitionLeaderboardActivity"></activity>
     </application>
 
 </manifest>

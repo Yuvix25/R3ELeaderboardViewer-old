@@ -1,5 +1,6 @@
 package com.example.r3eleaderboardviewer;
 
+import android.content.Context;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.util.TypedValue;
@@ -28,7 +29,7 @@ public class R3ELeaderboardEntry {
     public final R3ELivery livery;
 
 
-    public R3ELeaderboardEntry(JSONObject entry, String carClassId, String trackLayoutId) throws JSONException, MalformedURLException {
+    public R3ELeaderboardEntry(JSONObject entry) throws JSONException, MalformedURLException {
         String[] fullDate = entry.getString("date_time").split("T");
         String[] date = fullDate[0].split("-");
         String[] time = fullDate[1].split(":");
@@ -62,25 +63,25 @@ public class R3ELeaderboardEntry {
         livery = new R3ELivery(carJson.getString("name"), new URL(carJson.getString("icon").replace("webp", "png")));
     }
 
-    public TableRow getTableRow(MainActivity activity, int position, Double bestLap, TableRow.LayoutParams[] params) {
-        TableRow row = new TableRow(activity);
+    public TableRow getTableRow(Context context, int position, Double bestLap, TableRow.LayoutParams[] params) {
+        TableRow row = new TableRow(context);
 
         List<View> views = new ArrayList<>();
 
-        TextView positionView = new TextView(activity);
+        TextView positionView = new TextView(context);
         positionView.setText(Integer.toString(position));
         positionView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         views.add(positionView);
 
-        TextView driverView = new TextView(activity);
+        TextView driverView = new TextView(context);
         driverView.setText(driver.name.replaceAll("\\s+", "\n"));
         views.add(driverView);
 
-        TextView lapTimeView = new TextView(activity);
+        TextView lapTimeView = new TextView(context);
         lapTimeView.setText(getLapTimeWithRelative(bestLap).replaceAll(",\\s+", ",\n"));
         views.add(lapTimeView);
 
-        views.add(Utils.loadImageFromUrl(livery.icon.toString(), activity));
+        views.add(Utils.loadImageFromUrl(livery.icon.toString(), context));
 
         int i = 0;
         for (View view : views) {

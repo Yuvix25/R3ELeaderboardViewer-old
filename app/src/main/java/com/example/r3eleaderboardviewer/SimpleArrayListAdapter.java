@@ -12,6 +12,8 @@ import android.widget.TextView;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import gr.escsoft.michaelprimez.searchablespinner.interfaces.ISpinnerSelectedView;
 
@@ -56,6 +58,15 @@ public class SimpleArrayListAdapter extends ArrayAdapter<String> implements Filt
             return -1;
     }
 
+    public int getOriginalIndex(int index) { // regular counting from 0
+        int res = this.mStringFilter.getOriginalPosition(index);
+        if (res == -1) {
+            return index;
+        } else {
+            return res;
+        }
+    }
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View view;
@@ -98,19 +109,25 @@ public class SimpleArrayListAdapter extends ArrayAdapter<String> implements Filt
 
     public class StringFilter extends Filter {
 
+        private Map<Integer, Integer> mPositions;
+
         @Override
         protected FilterResults performFiltering(CharSequence constraint) {
             final FilterResults filterResults = new FilterResults();
+            mPositions = new HashMap<>();
             if (TextUtils.isEmpty(constraint)) {
                 filterResults.count = mBackupStrings.size();
                 filterResults.values = mBackupStrings;
                 return filterResults;
             }
             final ArrayList<String> filterStrings = new ArrayList<>();
+            int i = 0;
             for (String text : mBackupStrings) {
                 if (text.toLowerCase().contains(constraint)) {
                     filterStrings.add(text);
+                    mPositions.put(filterStrings.size() - 1, i);
                 }
+                i++;
             }
             filterResults.count = filterStrings.size();
             filterResults.values = filterStrings;
@@ -121,6 +138,13 @@ public class SimpleArrayListAdapter extends ArrayAdapter<String> implements Filt
         protected void publishResults(CharSequence constraint, FilterResults results) {
             mStrings = (ArrayList) results.values;
             notifyDataSetChanged();
+        }
+
+        protected int getOriginalPosition(int position) {
+            if (mPositions != null && mPositions.containsKey(position))
+                return mPositions.get(position);
+            else
+                return -1;
         }
     }
 

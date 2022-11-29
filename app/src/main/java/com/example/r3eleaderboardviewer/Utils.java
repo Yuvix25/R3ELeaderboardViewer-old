@@ -56,6 +56,7 @@ public class Utils {
         return "https://game.raceroom.com/store/image_redirect?size=small&id=" + id;
     }
     public static String getItemUrl(String id) {
+        Log.d("Utils", "getItemUrl: " + id);
         return getItemUrl(Integer.parseInt(id));
     }
 
@@ -105,6 +106,29 @@ public class Utils {
 
     public static float dpToPx(float dp, Context context) {
         return dp * ((float) context.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+    }
+
+    public static String[] splitDateTimeFromTimezone(String datetime) {
+        if (datetime.contains("+")) {
+            String[] res = datetime.split("\\+");
+            return new String[] {res[0], "+" + res[1]};
+        } else if (stringCount(datetime, "-") == 3) {
+            String[] res = datetime.split("\\-");
+            return new String[] {res[0] + "-" + res[1], "-" + res[2]};
+        } else {
+            return new String[] {datetime, "+00:00"};
+        }
+    }
+
+    public static int stringCount(String string, String substring) {
+        return (string.length() - string.replace(substring, "").length()) / substring.length();
+    }
+
+    public static void openCompetition(Context context, R3ECompetition comp) {
+        Intent i = new Intent(context, CompetitionLeaderboardActivity.class);
+        i.putExtra("compId", comp.id);
+        i.putExtra("compName", comp.name);
+        context.startActivity(i);
     }
 
     public static ImageView loadImageFromUrl(String url, Context context, int padToSquare, Utils.ParameterizedRunnable callback, boolean getUri, boolean retry) {
@@ -173,7 +197,7 @@ public class Utils {
                         img.setTag(uri);
                     }
 
-                    callback.run(img, true);
+                    callback.run(img, true, resource);
                 }
 
                 @Override

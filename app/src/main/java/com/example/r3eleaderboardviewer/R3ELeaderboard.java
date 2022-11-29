@@ -1,6 +1,9 @@
 package com.example.r3eleaderboardviewer;
 
+import android.content.Context;
 import android.util.Log;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,10 +41,6 @@ public class R3ELeaderboard {
     public R3ELeaderboard() {}
 
     public List<R3ELeaderboardEntry> getAllEntries(boolean keepDuplicateDrivers) {
-        int count = 0;
-        for (R3ELeaderboardEntry[] entry : entries.values()) {
-            count += entry.length;
-        }
         List<R3ELeaderboardEntry> res = new ArrayList<>();
         for (R3ELeaderboardEntry[] entry : entries.values()) {
             res.addAll(Arrays.asList(entry));
@@ -151,5 +150,55 @@ public class R3ELeaderboard {
 
     public boolean removeCarClass(int carId) {
         return removeCarClass(Integer.toString(carId));
+    }
+
+
+    public boolean updateCompetition(String compId) {
+        R3ELeaderboardEntry[] entries = R3EApis.getLeaderboard(Integer.parseInt(compId), MAX_ENTRIES);
+        if (entries == null) {
+            return false;
+        }
+        Log.d("R3E", "Got " + entries.length + " entries for (competition): " + compId);
+
+        this.entries.put(compId, entries);
+
+        return true;
+    }
+
+
+    public void updateTable(Context context, TableLayout table, Runnable callback) {
+        table.removeAllViews();
+        List<R3ELeaderboardEntry> entries = getAllEntries();
+
+        final int carImgWidth = 75;
+
+        TableRow.LayoutParams positionParams = new TableRow.LayoutParams();
+        positionParams.weight = 0;
+
+        TableRow.LayoutParams nameParams = new TableRow.LayoutParams();
+        nameParams.weight = 2;
+
+        TableRow.LayoutParams laptimeParams = new TableRow.LayoutParams();
+        laptimeParams.weight = 0;
+
+        TableRow.LayoutParams carImgParams = new TableRow.LayoutParams();
+        carImgParams.weight = 0;
+        carImgParams.width = (int) Utils.dpToPx(carImgWidth, context);
+
+        TableRow.LayoutParams[] allParams = new TableRow.LayoutParams[]{positionParams, nameParams, laptimeParams, carImgParams};
+        for (TableRow.LayoutParams params : allParams) {
+            params.rightMargin = (int) Utils.dpToPx(15f, context);
+            params.height = TableRow.LayoutParams.MATCH_PARENT;
+        }
+
+
+        int i = 0;
+        for (R3ELeaderboardEntry entry : entries) {
+            table.addView(entry.getTableRow(context, ++i, entries.get(0).laptimeSeconds, allParams));
+        }
+
+        if (callback != null) {
+            callback.run();
+        }
     }
 }
