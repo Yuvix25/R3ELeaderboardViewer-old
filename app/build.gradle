@@ -37,11 +37,13 @@ configurations.all {
 dependencies {
     implementation 'com.github.michaelprimez:searchablespinner:1.0.9'
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
-    implementation 'com.github.pchmn:MaterialChipsInput:1.0.8', {
-        exclude module: 'ChipsLayoutManager'
-    }
+//    implementation project(':MaterialChipsInput')
+//    implementation 'com.github.pchmn:MaterialChipsInput:1.0.8', {
+//        exclude module: 'ChipsLayoutManager'
+//    }
     implementation 'com.github.BelooS:ChipsLayoutManager:v0.3.7'
     implementation 'com.google.android.material:material:1.7.0'
+    implementation project(path: ':MaterialChipsInput')
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
     implementation 'com.jakewharton.threetenabp:threetenabp:1.2.1'
     implementation 'com.github.pratikbutani:MultiSelectSpinner:1.0.1'

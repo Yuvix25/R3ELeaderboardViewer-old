@@ -1,2 +1,5 @@
 include ':app'
 rootProject.name='R3E Leaderboard Viewer'
+
+include ":MaterialChipsInput"
+project(":MaterialChipsInput").projectDir = file("../MaterialChipsInput/library")

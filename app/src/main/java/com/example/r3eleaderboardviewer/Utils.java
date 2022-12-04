@@ -56,7 +56,6 @@ public class Utils {
         return "https://game.raceroom.com/store/image_redirect?size=small&id=" + id;
     }
     public static String getItemUrl(String id) {
-        Log.d("Utils", "getItemUrl: " + id);
         return getItemUrl(Integer.parseInt(id));
     }
 
@@ -114,7 +113,7 @@ public class Utils {
             return new String[] {res[0], "+" + res[1]};
         } else if (stringCount(datetime, "-") == 3) {
             String[] res = datetime.split("\\-");
-            return new String[] {res[0] + "-" + res[1], "-" + res[2]};
+            return new String[] {res[0] + "-" + res[1] + "-" + res[2], "-" + res[3]};
         } else {
             return new String[] {datetime, "+00:00"};
         }

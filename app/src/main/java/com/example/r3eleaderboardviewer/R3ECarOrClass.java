@@ -1,6 +1,5 @@
 package com.example.r3eleaderboardviewer;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,7 +40,7 @@ public class R3ECarOrClass {
         }
     }
 
-    public String[] getId() {
+    public String[] getIds() {
         if (type == 0) {
             return new String[]{car.id};
         } else if (type == 1) {

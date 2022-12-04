@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import gr.escsoft.michaelprimez.searchablespinner.SearchableSpinner;
 import gr.escsoft.michaelprimez.searchablespinner.interfaces.OnItemSelectedListener;
@@ -31,6 +30,19 @@ public class MainActivity extends ActivityWithNavigation {
     private SearchableSpinner selectTrack;
     private ChipsInput selectCar;
     private SwipeRefreshLayout pullToRefresh;
+    TableLayout table;
+
+    private Comparator<ChipInterface> getCarListComparator(List<CarChip> carList) {
+        return new Comparator<ChipInterface>() {
+            @Override
+            public int compare(ChipInterface c1, ChipInterface c2) {
+                R3ECarOrClass car1 = (R3ECarOrClass) c1.getId();
+                R3ECarOrClass car2 = (R3ECarOrClass) c2.getId();
+
+                return carList.indexOf(car1) - carList.indexOf(car2);
+            }
+        };
+    }
 
 
     private List<String> carIds = new ArrayList<>();
@@ -46,6 +58,7 @@ public class MainActivity extends ActivityWithNavigation {
 
         getSupportActionBar().setTitle("Leaderboards");
 
+        table = findViewById(R.id.leaderboardTable);
 
         pullToRefresh = findViewById(R.id.pullToRefresh);
         pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -59,7 +72,6 @@ public class MainActivity extends ActivityWithNavigation {
 
 
         selectCar = findViewById(R.id.carSelect);
-        selectCar.clearFocus();
         selectCar.setFilterableList(new ArrayList<>());
 
         updateSelectItems(new ArrayList<>(), new ArrayList<>());
@@ -68,7 +80,7 @@ public class MainActivity extends ActivityWithNavigation {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                leaderboard = new R3ELeaderboard();
+                leaderboard = new R3ELeaderboard(MainActivity.this, table);
 
                 boolean res = R3EData.load();
                 if (!res) {
@@ -224,16 +236,16 @@ public class MainActivity extends ActivityWithNavigation {
                             }
 
                             if (receivedIcons[0] == cars.size()) {
-                                selectCar.setFilterableList(carList);
+                                selectCar.setFilterableList(carList, getCarListComparator(carList));
                                 selectCar.requestLayout();
                                 selectCar.addChipsListener(new ChipsInput.ChipsListener() {
                                     private String[] getId(Object data) {
                                         R3ECarOrClass carObj = (R3ECarOrClass) data;
                                         String[] carId;
                                         if  (carObj.type == 0 ){
-                                            carId = carObj.getId();
+                                            carId = carObj.getIds();
                                         } else {
-                                            carId = Arrays.stream(carObj.getId()).map(id -> "class-" + id).toArray(String[]::new);
+                                            carId = Arrays.stream(carObj.getIds()).map(id -> "class-" + id).toArray(String[]::new);
                                         }
                                         return carId;
                                     }
@@ -308,8 +320,6 @@ public class MainActivity extends ActivityWithNavigation {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TableLayout table = findViewById(R.id.leaderboardTable);
-
                 leaderboard.updateTable(MainActivity.this, table, callback);
                 hideLoadingCircle();
             }

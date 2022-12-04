@@ -1,5 +1,6 @@
 package com.example.r3eleaderboardviewer;
 
+import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
 import android.widget.TableLayout;
@@ -21,24 +22,13 @@ public class R3ELeaderboard {
     private List<String> carClassIds = new ArrayList<>(); // "class-..." for a full class, just a number for a single car.
     private int trackId = -1;
     private final Map<String, R3ELeaderboardEntry[]> entries = new HashMap<>();
+    private TableLayout table;
+    private Activity context;
 
-    public R3ELeaderboard(int trackId, List<String> carClassIds) {
-        this.trackId = trackId;
-        this.carClassIds = carClassIds;
+    public R3ELeaderboard(Activity context, TableLayout table) {
+        this.context = context;
+        this.table = table;
     }
-    public R3ELeaderboard(int trackId, String carClassId) {
-        this.trackId = trackId;
-        this.carClassIds.add(carClassId);
-    }
-    public R3ELeaderboard(int trackId, int carId) {
-        this.trackId = trackId;
-        this.carClassIds.add(Integer.toString(carId));
-    }
-    public R3ELeaderboard(int trackId) {
-        this.trackId = trackId;
-    }
-
-    public R3ELeaderboard() {}
 
     public List<R3ELeaderboardEntry> getAllEntries(boolean keepDuplicateDrivers) {
         List<R3ELeaderboardEntry> res = new ArrayList<>();
@@ -79,6 +69,10 @@ public class R3ELeaderboard {
         entries.clear();
         this.trackId = -1;
         this.carClassIds.clear();
+    }
+
+    public void setTable(TableLayout table) {
+        this.table = table;
     }
 
     public boolean updateTrack(int trackId) {
@@ -128,6 +122,15 @@ public class R3ELeaderboard {
             Log.d("R3E", "Got " + entries.length + " entries for " + carClassId + " on " + trackId);
 
             this.entries.put(carClassId, entries);
+
+            if (this.table != null) {
+                context.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateTable(context, table, null);
+                    }
+                });
+            }
 
             return true;
         }

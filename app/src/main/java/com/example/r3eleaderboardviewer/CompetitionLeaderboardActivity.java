@@ -1,5 +1,6 @@
 package com.example.r3eleaderboardviewer;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.widget.TableLayout;
 
@@ -9,10 +10,12 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.util.Arrays;
 
 public class CompetitionLeaderboardActivity extends ActivityWithNavigation {
-    private final R3ELeaderboard leaderboard = new R3ELeaderboard();
+    private R3ELeaderboard leaderboard;
     private String competitionId;
     private String competitionName;
+    TableLayout table;
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState, R.layout.competition_leaderboard);
@@ -20,6 +23,10 @@ public class CompetitionLeaderboardActivity extends ActivityWithNavigation {
         Intent i = getIntent();
         competitionId = i.getStringExtra("compId");
         competitionName = i.getStringExtra("compName");
+
+        table = findViewById(R.id.leaderboardTable);
+
+        leaderboard = new R3ELeaderboard(this, table);
 
         getSupportActionBar().setTitle("Competition - " + competitionName);
 
@@ -43,7 +50,6 @@ public class CompetitionLeaderboardActivity extends ActivityWithNavigation {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        TableLayout table = findViewById(R.id.leaderboardTable);
                         leaderboard.updateTable(CompetitionLeaderboardActivity.this, table, new Runnable() {
                             @Override
                             public void run() {

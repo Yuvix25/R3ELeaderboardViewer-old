@@ -37,6 +37,7 @@ public class R3ECompetition {
     }
 
     public R3ECompetition(JSONObject obj) throws JSONException, MalformedURLException, ParseException {
+        Log.d("R3ECompetition", obj.getString("start_date"));
         String[] splittedStart = Utils.splitDateTimeFromTimezone(obj.getString("start_date"));
         this.timezone = splittedStart[1];
         String startDate = splittedStart[0];
