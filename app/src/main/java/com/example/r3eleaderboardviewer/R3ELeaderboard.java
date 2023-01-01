@@ -109,13 +109,9 @@ public class R3ELeaderboard {
         return res;
     }
 
-    public boolean addCarClass(String carClassId) {
-        if (!carClassIds.contains(carClassId)) {
-            carClassIds.add(carClassId);
-        }
-
+    private boolean addCarClassUpdate(String carClassId, int cacheDays) {
         if (trackId != -1) {
-            R3ELeaderboardEntry[] entries = R3EApis.getLeaderboard(trackId, carClassId, MAX_ENTRIES);
+            R3ELeaderboardEntry[] entries = R3EApis.getLeaderboard(trackId, carClassId, MAX_ENTRIES, cacheDays);
             if (entries == null) {
                 return false;
             }
@@ -135,6 +131,22 @@ public class R3ELeaderboard {
             return true;
         }
         return false;
+    }
+
+    public boolean addCarClass(String carClassId) {
+        if (!carClassIds.contains(carClassId)) {
+            carClassIds.add(carClassId);
+        }
+
+//        Thread thread = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                addCarClassUpdate(carClassId, 999999);
+//            }
+//        });
+//        thread.start();
+
+        return addCarClassUpdate(carClassId, 0);
     }
 
     public boolean addCarClass(int carId) {

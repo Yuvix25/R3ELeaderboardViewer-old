@@ -3,6 +3,7 @@ package com.example.r3eleaderboardviewer;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -48,6 +49,8 @@ public class MainActivity extends ActivityWithNavigation {
     private List<String> carIds = new ArrayList<>();
     private int trackId = -1;
 
+    private ProgressDialog initialLoadScreen;
+
     @SuppressLint("MissingSuperCall")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +58,12 @@ public class MainActivity extends ActivityWithNavigation {
 
         Utils.setContext(this);
         AndroidThreeTen.init(this);
+
+        initialLoadScreen = new ProgressDialog(this);
+        initialLoadScreen.setMessage("Loading...");
+        initialLoadScreen.setCancelable(false);
+        initialLoadScreen.setInverseBackgroundForced(false);
+        initialLoadScreen.show();
 
         getSupportActionBar().setTitle("Leaderboards");
 
@@ -75,6 +84,7 @@ public class MainActivity extends ActivityWithNavigation {
         selectCar.setFilterableList(new ArrayList<>());
 
         updateSelectItems(new ArrayList<>(), new ArrayList<>());
+
 
 
         Thread thread = new Thread(new Runnable() {
@@ -269,6 +279,8 @@ public class MainActivity extends ActivityWithNavigation {
                                     }
                                 });
                                 Log.d("R3E", "Done loading and processing all cars.");
+
+                                initialLoadScreen.dismiss();
                             }
                         }
                     };

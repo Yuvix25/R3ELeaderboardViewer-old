@@ -20,9 +20,13 @@ public class R3EData {
     public static final Map<String, R3ELivery> liveries = new HashMap<>();
     public static final Map<String, R3ECar> cars = new HashMap<>();
     public static final Map<String, R3EClass> classes = new HashMap<>();
+//    public static final Map<String, List<String>> classGroupDefinitions = Map.of(
+//            "GT3 Group", Arrays.asList("GTR 3", "ADAC GT Masters 2020", "DTM 2021", "ADAC Esports GT Masters 2021", "ADAC GT Masters 2021", "ADAC GT Masters 2018", "DTM Esports 2022", "ADAC Esports GT Masters", "ADAC GT Masters 2015", "ADAC GT Masters 2014", "ADAC GT Masters 2013"),
+//            "WTCR Group", Arrays.asList("WTCR 2021", "WTCR 2022", "WTCR 2020", "WTCR 2019", "WTCR 2018", "eSports WTCR", "Esports WTCR Prologue")
+//    );
     public static final Map<String, List<String>> classGroupDefinitions = Map.of(
-            "GT3 Group", Arrays.asList("GTR 3", "ADAC GT Masters 2020", "DTM 2021", "ADAC Esports GT Masters 2021", "ADAC GT Masters 21", "ADAC GT Masters 2018", "DTM Esports 2022", "ADAC Esports GT Masters", "ADAC GT Masters 2015", "ADAC GT Masters 2014", "ADAC GT Masters 2013"),
-            "WTCR Group", Arrays.asList("WTCR 2021", "WTCR 2022", "WTCR 2020", "WTCR 2019", "WTCR 2018", "eSports WTCR", "Esports WTCR Prologue")
+            "GT3 Group", Arrays.asList("1703", "7767", "10396", "10049", "11566", "7278", "10917", "10786", "4516", "3375", "2922"),
+            "WTCR Group", Arrays.asList("10344", "11317", "9233", "7844", "7009", "8656", "6783")
     );
     public static final Map<String, Integer> classGroupIcons = Map.of(
             "GT3 Group", R.drawable.gt3_group_icon,
@@ -73,16 +77,7 @@ public class R3EData {
             }
 
             for (String classGroup : classGroupDefinitions.keySet()) {
-                R3EClass[] ids = new R3EClass[classGroupDefinitions.get(classGroup).size()];
-
-                int i = 0;
-                for (String classId : classes.keySet()) {
-                    if (classGroupDefinitions.get(classGroup).contains(classes.get(classId).name)) {
-                        ids[i++] = classes.get(classId);
-                    }
-                }
-
-                R3EClassGroup r3eClassGroup = new R3EClassGroup(classGroup, classGroupIcons.get(classGroup), ids);
+                R3EClassGroup r3eClassGroup = new R3EClassGroup(classGroup, classGroupIcons.get(classGroup), classGroupDefinitions.get(classGroup).stream().map(classes::get).toArray(R3EClass[]::new));
                 classGroups.put(classGroup, r3eClassGroup);
             }
 

@@ -26,6 +26,10 @@ public class R3EApis {
     }};
 
 
+    public static R3ELeaderboardEntry[] getLeaderboard(String url) {
+        return getLeaderboard(url, 0);
+    }
+
     /**
      * Get all entries of a competition leaderboard
      * @param leaderboardId competition id
@@ -46,9 +50,9 @@ public class R3EApis {
      * @return Array of entries.
      * @throws org.json.JSONException Invalid JSON.
      */
-    public static R3ELeaderboardEntry[] getLeaderboard(int track, String carClass, int count) {
+    public static R3ELeaderboardEntry[] getLeaderboard(int track, String carClass, int count, int cacheDays) {
         String url = String.format(Locale.getDefault(), "https://game.raceroom.com/leaderboard/listing/0?start=0&count=%d&track=%d&car_class=%s", count, track, carClass);
-        return getLeaderboard(url);
+        return getLeaderboard(url, cacheDays);
     }
 
     /**
@@ -59,12 +63,12 @@ public class R3EApis {
      * @return Array of entries.
      * @throws org.json.JSONException Invalid JSON.
      */
-    public static R3ELeaderboardEntry[] getLeaderboard(int track, int carId, int count) {
-        return getLeaderboard(track, Integer.toString(carId), count);
+    public static R3ELeaderboardEntry[] getLeaderboard(int track, int carId, int count, int cacheDays) {
+        return getLeaderboard(track, Integer.toString(carId), count, cacheDays);
     }
 
-    private static R3ELeaderboardEntry[] getLeaderboard(String url) {
-        JSONObject res = HTTPJsonRequest(url, xhrHeaders);
+    private static R3ELeaderboardEntry[] getLeaderboard(String url, int cacheDays) {
+        JSONObject res = HTTPJsonRequest(url, xhrHeaders, cacheDays, TimeUnit.DAYS);
 
         try {
             JSONObject content = res.getJSONObject("context").getJSONObject("c");
